@@ -9,12 +9,12 @@ namespace Poushec.UpdateCatalogParser.Models
     {
         private List<string> ParseSupersededByList()
         {
-            if (detailsPage is null)
+            if (_detailsPage is null)
             {
                 throw new ParseHtmlPageException("Failed to parse update details. _details page is null");
             }
 
-            var supersededByDivs = detailsPage.GetElementbyId("supersededbyInfo");
+            var supersededByDivs = _detailsPage.GetElementbyId("supersededbyInfo");
             var supersededBy = new List<string>();
 
             // If first child isn't a div - than it's just a n/a and there's nothing to gather
@@ -40,12 +40,12 @@ namespace Poushec.UpdateCatalogParser.Models
 
         private List<string> ParseSupersedesList()
         {
-            if (detailsPage is null)
+            if (_detailsPage is null)
             {
                 throw new ParseHtmlPageException("Failed to parse update details. _details page is null");
             }
 
-            var supersedesDivs = detailsPage.GetElementbyId("supersedesInfo");
+            var supersedesDivs = _detailsPage.GetElementbyId("supersedesInfo");
             var supersedes = new List<string>();
 
             // If first child isn't a div - than it's just a n/a and there's nothing to gather
@@ -67,16 +67,16 @@ namespace Poushec.UpdateCatalogParser.Models
 
         private void ParseUpdateDetails()
         {
-            if (detailsPage is null)
+            if (_detailsPage is null)
             {
                 throw new ParseHtmlPageException("Failed to parse update details. _details page is null");
             }
 
             try
             {
-                MSRCNumber = detailsPage.GetElementbyId("securityBullitenDiv").LastChild.InnerText.Trim();
-                MSRCSeverity = detailsPage.GetElementbyId("ScopedViewHandler_msrcSeverity").InnerText;
-                KBArticleNumbers = detailsPage.GetElementbyId("kbDiv").LastChild.InnerText.Trim();
+                MSRCNumber = _detailsPage.GetElementbyId("securityBullitenDiv").LastChild.InnerText.Trim();
+                MSRCSeverity = _detailsPage.GetElementbyId("ScopedViewHandler_msrcSeverity").InnerText;
+                KBArticleNumbers = _detailsPage.GetElementbyId("kbDiv").LastChild.InnerText.Trim();
                 SupersededBy = ParseSupersededByList();
                 Supersedes = ParseSupersedesList();
             }

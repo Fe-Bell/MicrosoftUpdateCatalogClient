@@ -18,7 +18,7 @@ namespace Poushec.UpdateCatalogParser.Models
     /// </summary>
     public class UpdateBase
     {
-        protected HtmlDocument detailsPage;
+        protected HtmlDocument _detailsPage = null;
 
         private async Task<string> GetDownloadPageContent(HttpClient client, CancellationToken cancellationToken = default)
         {
@@ -41,7 +41,6 @@ namespace Poushec.UpdateCatalogParser.Models
             };
             string post = JsonSerializer.Serialize(downloadPageContentPostObject, jsonSerializerOptions);
 
-
             string body = $"[{post}]";
 
             using MultipartFormDataContent requestContent = new()
@@ -51,19 +50,18 @@ namespace Poushec.UpdateCatalogParser.Models
 
             request.Content = requestContent;
 
-            HttpResponseMessage response;
             try
             {
-                response = await client.SendAsync(request, cancellationToken);
+                using HttpResponseMessage response = await client.SendAsync(request, cancellationToken);
+
+                response.EnsureSuccessStatusCode();
+
+                return await response.Content.ReadAsStringAsync(cancellationToken);
             }
             catch (TaskCanceledException)
             {
                 throw new RequestToCatalogTimedOutException();
             }
-
-            response.EnsureSuccessStatusCode();
-
-            return await response.Content.ReadAsStringAsync(cancellationToken);
         }
 
         protected async Task GetDetailsPage(HttpClient client, CancellationToken cancellationToken = default)
@@ -97,28 +95,24 @@ namespace Poushec.UpdateCatalogParser.Models
                         throw new CatalogErrorException($"Catalog returned unknown error code: {errorCode}");
                 }
 
-                detailsPage = tempPage;
+                _detailsPage = tempPage;
             }
             catch (TaskCanceledException ex)
             {
                 throw new RequestToCatalogTimedOutException("Catalog was not responded", ex);
             }
-            finally
-            {
-
-            }
         }
 
         protected void ParseCommonDetails()
         {
-            if (detailsPage is null)
+            if (_detailsPage is null)
             {
                 throw new ParseHtmlPageException("_parseCommonDetails() failed. _detailsPage is null");
             }
 
-            Description = detailsPage.GetElementbyId("ScopedViewHandler_desc").InnerText;
+            Description = _detailsPage.GetElementbyId("ScopedViewHandler_desc").InnerText;
 
-            detailsPage.GetElementbyId("archDiv")
+            _detailsPage.GetElementbyId("archDiv")
                 .LastChild
                 .InnerText.Trim()
                 .Split(",")
@@ -128,7 +122,7 @@ namespace Poushec.UpdateCatalogParser.Models
                     Architectures.Add(arch.Trim());
                 });
 
-            detailsPage.GetElementbyId("languagesDiv")
+            _detailsPage.GetElementbyId("languagesDiv")
                 .LastChild
                 .InnerText.Trim()
                 .Split(",")
@@ -138,7 +132,7 @@ namespace Poushec.UpdateCatalogParser.Models
                     SupportedLanguages.Add(lang.Trim());
                 });
 
-            string moreInfoDivContent = detailsPage.GetElementbyId("moreInfoDiv").InnerHtml;
+            string moreInfoDivContent = _detailsPage.GetElementbyId("moreInfoDiv").InnerHtml;
             MatchCollection moreInfoUrlMatches = Validation.UrlValidators.BasicUrlRegex().Matches(moreInfoDivContent);
 
             if (moreInfoUrlMatches.Any())
@@ -148,7 +142,7 @@ namespace Poushec.UpdateCatalogParser.Models
                     .ToList();
             }
 
-            string supportUrlDivContent = detailsPage.GetElementbyId("suportUrlDiv").InnerHtml;
+            string supportUrlDivContent = _detailsPage.GetElementbyId("suportUrlDiv").InnerHtml;
             MatchCollection supportUrlMatches = Validation.UrlValidators.BasicUrlRegex().Matches(supportUrlDivContent);
 
             if (supportUrlMatches.Any())
@@ -158,15 +152,15 @@ namespace Poushec.UpdateCatalogParser.Models
                     .ToList();
             }
 
-            RestartBehavior = detailsPage.GetElementbyId("ScopedViewHandler_rebootBehavior").InnerText;
+            RestartBehavior = _detailsPage.GetElementbyId("ScopedViewHandler_rebootBehavior").InnerText;
 
-            MayRequestUserInput = detailsPage.GetElementbyId("ScopedViewHandler_userInput").InnerText;
+            MayRequestUserInput = _detailsPage.GetElementbyId("ScopedViewHandler_userInput").InnerText;
 
-            MustBeInstalledExclusively = detailsPage.GetElementbyId("ScopedViewHandler_installationImpact").InnerText;
+            MustBeInstalledExclusively = _detailsPage.GetElementbyId("ScopedViewHandler_installationImpact").InnerText;
 
-            RequiresNetworkConnectivity = detailsPage.GetElementbyId("ScopedViewHandler_connectivity").InnerText;
+            RequiresNetworkConnectivity = _detailsPage.GetElementbyId("ScopedViewHandler_connectivity").InnerText;
 
-            HtmlNode uninstallNotesDiv = detailsPage.GetElementbyId("uninstallNotesDiv");
+            HtmlNode uninstallNotesDiv = _detailsPage.GetElementbyId("uninstallNotesDiv");
 
             if (uninstallNotesDiv.ChildNodes.Count == 3)
             {
@@ -174,12 +168,12 @@ namespace Poushec.UpdateCatalogParser.Models
             }
             else
             {
-                UninstallNotes = detailsPage.GetElementbyId("uninstallNotesDiv")
+                UninstallNotes = _detailsPage.GetElementbyId("uninstallNotesDiv")
                     .ChildNodes[3]
                     .InnerText.Trim();
             }
 
-            UninstallSteps = detailsPage.GetElementbyId("uninstallStepsDiv")
+            UninstallSteps = _detailsPage.GetElementbyId("uninstallStepsDiv")
                 .LastChild
                 .InnerText.Trim();
         }
@@ -207,7 +201,7 @@ namespace Poushec.UpdateCatalogParser.Models
 
         internal UpdateBase(UpdateBase updateBase)
         {
-            detailsPage = updateBase.detailsPage;
+            _detailsPage = updateBase._detailsPage;
             Title = updateBase.Title;
             UpdateID = updateBase.UpdateID;
             Products = updateBase.Products;

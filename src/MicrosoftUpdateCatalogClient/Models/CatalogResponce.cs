@@ -1,6 +1,7 @@
 using HtmlAgilityPack;
 using Poushec.UpdateCatalogParser.Exceptions;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json.Serialization;
@@ -11,8 +12,8 @@ namespace Poushec.UpdateCatalogParser.Models
 {
     public partial class CatalogResponse
     {
-        private readonly HttpClient httpClient;
-        private readonly HtmlNode nextPage;
+        private readonly HttpClient _httpClient;
+        private readonly HtmlNode _nextPage;
 
         [JsonConstructor]
         public CatalogResponse()
@@ -32,7 +33,7 @@ namespace Poushec.UpdateCatalogParser.Models
             int resultsCount
         )
         {
-            httpClient = client;
+            _httpClient = client;
             SearchQueryUri = searchQueryUri;
 
             SearchResults = searchResults;
@@ -40,7 +41,7 @@ namespace Poushec.UpdateCatalogParser.Models
             EventValidation = eventValidation;
             ViewState = viewState;
             ViewStateGenerator = viewStateGenerator;
-            this.nextPage = nextPage;
+            this._nextPage = nextPage;
             ResultsCount = resultsCount;
         }
 
@@ -90,7 +91,7 @@ namespace Poushec.UpdateCatalogParser.Models
 
         public List<CatalogSearchResult> SearchResults;
 
-        public bool IsFinalPage => nextPage is null;
+        public bool IsFinalPage => _nextPage is null;
 
         /// <summary>
         /// Loads and parses the next page of the search results. If this method is called 
@@ -113,13 +114,15 @@ namespace Poushec.UpdateCatalogParser.Models
 
             using FormUrlEncodedContent requestContent = new (formData); 
 
-            using HttpResponseMessage response = await httpClient.PostAsync(SearchQueryUri, requestContent, cancellationToken);
+            using HttpResponseMessage response = await _httpClient.PostAsync(SearchQueryUri, requestContent, cancellationToken);
             response.EnsureSuccessStatusCode();
             
-            HtmlDocument HtmlDoc = new();
-            HtmlDoc.Load(await response.Content.ReadAsStreamAsync(cancellationToken));
+            HtmlDocument htmlDoc = new();
 
-            return ParseFromHtmlPage(HtmlDoc, httpClient, SearchQueryUri);
+            using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            htmlDoc.Load(stream);
+
+            return ParseFromHtmlPage(htmlDoc, _httpClient, SearchQueryUri);
         }
     }
 }
