@@ -24,14 +24,14 @@ namespace Poushec.UpdateCatalogParser.Models
             int sizeInBytes, 
             string updateId) 
         {
-            this.Title = title;
-            this.Products = products;
-            this.Classification = classification;
-            this.LastUpdated = lastUpdated;
-            this.Version = version;
-            this.Size = size;
-            this.SizeInBytes = sizeInBytes;
-            this.UpdateID = updateId;
+            Title = title;
+            Products = products;
+            Classification = classification;
+            LastUpdated = lastUpdated;
+            Version = version;
+            Size = size;
+            SizeInBytes = sizeInBytes;
+            UpdateID = updateId;
         }
 
         public static CatalogSearchResult ParseFromResultsTableRow(HtmlNode resultsRow)

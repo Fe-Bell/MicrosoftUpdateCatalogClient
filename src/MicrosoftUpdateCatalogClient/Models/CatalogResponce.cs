@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Poushec.UpdateCatalogParser.Models
 {
-    public class CatalogResponse
+    public partial class CatalogResponse
     {
         private readonly HttpClient _client;
         private readonly HtmlNode _nextPage; 
@@ -39,13 +39,13 @@ namespace Poushec.UpdateCatalogParser.Models
             _client = client;
             SearchQueryUri = searchQueryUri;
 
-            this.SearchResults = searchResults;
-            this.EventArgument = eventArgument;
-            this.EventValidation = eventValidation;
-            this.ViewState = viewState;
-            this.ViewStateGenerator = viewStateGenerator;
-            this._nextPage = nextPage;
-            this.ResultsCount = resultsCount;
+            SearchResults = searchResults;
+            EventArgument = eventArgument;
+            EventValidation = eventValidation;
+            ViewState = viewState;
+            ViewStateGenerator = viewStateGenerator;
+            _nextPage = nextPage;
+            ResultsCount = resultsCount;
         }
 
         /// <summary>
@@ -77,7 +77,7 @@ namespace Poushec.UpdateCatalogParser.Models
             var HtmlDoc = new HtmlDocument();
             HtmlDoc.Load(await response.Content.ReadAsStreamAsync());
 
-            return CatalogResponse.ParseFromHtmlPage(HtmlDoc, _client, SearchQueryUri);
+            return ParseFromHtmlPage(HtmlDoc, _client, SearchQueryUri);
         }
 
         internal static CatalogResponse ParseFromHtmlPage(HtmlDocument htmlDoc, HttpClient client, string searchQueryUri)
@@ -89,7 +89,7 @@ namespace Poushec.UpdateCatalogParser.Models
             HtmlNode nextPage = htmlDoc.GetElementbyId("ctl00_catalogBody_nextPageLinkText");
 
             string resultsCountString = htmlDoc.GetElementbyId("ctl00_catalogBody_searchDuration").InnerText;
-            int resultsCount = int.Parse(Regex.Match(resultsCountString, "(?<=of )\\d{1,4}").Value);
+            int resultsCount = int.Parse(Validation.NumericValidators.ResultCountRegex().Match(resultsCountString).Value);
 
             HtmlNode table = htmlDoc.GetElementbyId("ctl00_catalogBody_updateMatches")
                 ?? throw new CatalogFailedToLoadSearchResultsPageException("Catalog response does not contains a search results table");

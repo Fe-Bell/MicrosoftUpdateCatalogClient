@@ -27,11 +27,11 @@ namespace Poushec.UpdateCatalogParser.Models
 
             try
             {
-                this.MSRCNumber = _detailsPage.GetElementbyId("securityBullitenDiv").LastChild.InnerText.Trim();
-                this.MSRCSeverity = _detailsPage.GetElementbyId("ScopedViewHandler_msrcSeverity").InnerText;
-                this.KBArticleNumbers = _detailsPage.GetElementbyId("kbDiv").LastChild.InnerText.Trim();
-                this.SupersededBy = _parseSupersededByList();
-                this.Supersedes = _parseSupersedesList();
+                MSRCNumber = _detailsPage.GetElementbyId("securityBullitenDiv").LastChild.InnerText.Trim();
+                MSRCSeverity = _detailsPage.GetElementbyId("ScopedViewHandler_msrcSeverity").InnerText;
+                KBArticleNumbers = _detailsPage.GetElementbyId("kbDiv").LastChild.InnerText.Trim();
+                SupersededBy = _parseSupersededByList();
+                Supersedes = _parseSupersedesList();
             }
             catch (Exception ex)
             {

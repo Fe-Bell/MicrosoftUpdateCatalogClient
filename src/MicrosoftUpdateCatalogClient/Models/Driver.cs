@@ -30,14 +30,14 @@ namespace Poushec.UpdateCatalogParser.Models
 
             try
             {
-                this.HardwareIDs = _parseHardwareIDs();
-                this.Company = _detailsPage.GetElementbyId("ScopedViewHandler_company").InnerText;
-                this.DriverManufacturer = _detailsPage.GetElementbyId("ScopedViewHandler_manufacturer").InnerText;
-                this.DriverClass = _detailsPage.GetElementbyId("ScopedViewHandler_driverClass").InnerText;
-                this.DriverModel = _detailsPage.GetElementbyId("ScopedViewHandler_driverModel").InnerText;
-                this.DriverProvider = _detailsPage.GetElementbyId("ScopedViewHandler_driverProvider").InnerText;
-                this.DriverVersion = _detailsPage.GetElementbyId("ScopedViewHandler_version").InnerText;
-                this.VersionDate = DateOnly.Parse(_detailsPage.GetElementbyId("ScopedViewHandler_versionDate").InnerText);
+                HardwareIDs = _parseHardwareIDs();
+                Company = _detailsPage.GetElementbyId("ScopedViewHandler_company").InnerText;
+                DriverManufacturer = _detailsPage.GetElementbyId("ScopedViewHandler_manufacturer").InnerText;
+                DriverClass = _detailsPage.GetElementbyId("ScopedViewHandler_driverClass").InnerText;
+                DriverModel = _detailsPage.GetElementbyId("ScopedViewHandler_driverModel").InnerText;
+                DriverProvider = _detailsPage.GetElementbyId("ScopedViewHandler_driverProvider").InnerText;
+                DriverVersion = _detailsPage.GetElementbyId("ScopedViewHandler_version").InnerText;
+                VersionDate = DateOnly.Parse(_detailsPage.GetElementbyId("ScopedViewHandler_versionDate").InnerText);
             }
             catch (Exception ex)
             {

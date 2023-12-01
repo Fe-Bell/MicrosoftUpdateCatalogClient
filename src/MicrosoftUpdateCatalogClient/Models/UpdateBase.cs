@@ -15,173 +15,25 @@ namespace Poushec.UpdateCatalogParser.Models
     /// </summary>
     public class UpdateBase
     {
-        private readonly Regex _urlRegex = new(@"https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)");
-        private readonly Regex _downloadLinkRegex = new(@"(http[s]?\://dl\.delivery\.mp\.microsoft\.com\/[^\'\""]*)|(http[s]?\://download\.windowsupdate\.com\/[^\'\""]*)|(http[s]://catalog\.s\.download\.windowsupdate\.com.*?(?=\'))");
-
-        protected HtmlDocument _detailsPage; 
-
-        // Info from search results
-        public string Title { get; set; }
-        public string UpdateID { get; set; }
-        public List<string> Products { get; set; }
-        public string Classification { get; set; }
-        public DateOnly LastUpdated { get; set; }
-        public string Size { get; set; }
-        public int SizeInBytes { get; set; }
-
-        // Info from details page
-        public string Description { get; set; } = string.Empty;
-        public List<string> Architectures { get; set; } = new();
-        public List<string> SupportedLanguages { get; set; } = new();
-        public List<string> MoreInformation { get; set; } = new();
-        public List<string> SupportUrl { get; set; } = new(); 
-        public string RestartBehavior { get; set; } = string.Empty;
-        public string MayRequestUserInput { get; set; } = string.Empty;
-        public string MustBeInstalledExclusively { get; set; } = string.Empty;
-        public string RequiresNetworkConnectivity { get; set; } = string.Empty;
-        public string UninstallNotes { get; set; } = string.Empty;
-        public string UninstallSteps { get; set; } = string.Empty;
-
-        // Download links from download page
-        public List<string> DownloadLinks { get; set; } = new();
-
-        internal UpdateBase(CatalogSearchResult resultRow) 
-        {
-            this.UpdateID = resultRow.UpdateID;
-            this.Title = resultRow.Title;
-            this.Classification = resultRow.Classification;
-            this.LastUpdated = resultRow.LastUpdated;
-            this.Size = resultRow.Size;
-            this.SizeInBytes = resultRow.SizeInBytes;
-            this.Products = resultRow.Products.Trim().Split(",").ToList(); 
-        }
-
-        internal UpdateBase(UpdateBase updateBase)
-        {
-            this._detailsPage = updateBase._detailsPage;
-            this.Title = updateBase.Title;
-            this.UpdateID = updateBase.UpdateID;
-            this.Products = updateBase.Products;
-            this.Classification = updateBase.Classification;
-            this.LastUpdated = updateBase.LastUpdated;
-            this.Size = updateBase.Size;
-            this.SizeInBytes = updateBase.SizeInBytes;
-            this.DownloadLinks = updateBase.DownloadLinks;
-            this.Description = updateBase.Description;
-            this.Architectures = updateBase.Architectures;
-            this.SupportedLanguages = updateBase.SupportedLanguages;
-            this.MoreInformation = updateBase.MoreInformation;
-            this.SupportUrl = updateBase.SupportUrl;
-            this.RestartBehavior = updateBase.RestartBehavior;
-            this.MayRequestUserInput = updateBase.MayRequestUserInput;
-            this.MustBeInstalledExclusively = updateBase.MustBeInstalledExclusively;
-            this.RequiresNetworkConnectivity = updateBase.RequiresNetworkConnectivity;
-            this.UninstallNotes = updateBase.UninstallNotes;
-            this.UninstallSteps = updateBase.UninstallSteps;
-        }
-
-        internal async Task ParseCommonDetails(HttpClient client)
-        {
-            await GetDetailsPage(client);
-            string downloadPageContent = await GetDownloadPageContent(client);
-            
-            ParseCommonDetails();
-            ParseDownloadLinks(downloadPageContent);
-        }
-
-        protected void ParseCommonDetails()
-        {
-            if (_detailsPage is null)
-            {
-                throw new ParseHtmlPageException("_parseCommonDetails() failed. _detailsPage is null");
-            }
-
-            this.Description = _detailsPage.GetElementbyId("ScopedViewHandler_desc").InnerText;
-
-            _detailsPage.GetElementbyId("archDiv")
-                .LastChild
-                .InnerText.Trim()
-                .Split(",")
-                .ToList()
-                .ForEach(arch => 
-                {
-                   Architectures.Add(arch.Trim()); 
-                });
-
-            _detailsPage.GetElementbyId("languagesDiv")
-                .LastChild
-                .InnerText.Trim()
-                .Split(",")
-                .ToList()
-                .ForEach(lang => 
-                {
-                    SupportedLanguages.Add(lang.Trim());
-                });
-
-            string moreInfoDivContent = _detailsPage.GetElementbyId("moreInfoDiv").InnerHtml;
-            MatchCollection moreInfoUrlMatches = _urlRegex.Matches(moreInfoDivContent);
-
-            if (moreInfoUrlMatches.Any())
-            {
-                this.MoreInformation = moreInfoUrlMatches.Select(match => match.Value)
-                    .Distinct()
-                    .ToList();
-            }
-                
-            string supportUrlDivContent = _detailsPage.GetElementbyId("suportUrlDiv").InnerHtml;
-            MatchCollection supportUrlMatches = _urlRegex.Matches(supportUrlDivContent);
-
-            if (supportUrlMatches.Any())
-            {
-                this.SupportUrl = supportUrlMatches.Select(match => match.Value)
-                    .Distinct()
-                    .ToList();
-            }
-
-            this.RestartBehavior = _detailsPage.GetElementbyId("ScopedViewHandler_rebootBehavior").InnerText;
-
-            this.MayRequestUserInput = _detailsPage.GetElementbyId("ScopedViewHandler_userInput").InnerText;
-
-            this.MustBeInstalledExclusively = _detailsPage.GetElementbyId("ScopedViewHandler_installationImpact").InnerText;
-
-            this.RequiresNetworkConnectivity = _detailsPage.GetElementbyId("ScopedViewHandler_connectivity").InnerText;
-
-            var uninstallNotesDiv = _detailsPage.GetElementbyId("uninstallNotesDiv");
-
-            if (uninstallNotesDiv.ChildNodes.Count == 3)
-            {
-                this.UninstallNotes = uninstallNotesDiv.LastChild.InnerText.Trim();
-            }
-            else
-            {
-                this.UninstallNotes = _detailsPage.GetElementbyId("uninstallNotesDiv")
-                    .ChildNodes[3]
-                    .InnerText.Trim();
-            }
-                
-            this.UninstallSteps = _detailsPage.GetElementbyId("uninstallStepsDiv")
-                .LastChild
-                .InnerText.Trim();
-        }
+        protected HtmlDocument _detailsPage;
 
         private async Task<string> GetDownloadPageContent(HttpClient client)
         {
-            var RequestUri = "https://www.catalog.update.microsoft.com/DownloadDialog.aspx";
+            string requestUri = "https://www.catalog.update.microsoft.com/DownloadDialog.aspx";
 
-            var request = new HttpRequestMessage(HttpMethod.Post, RequestUri);
+            using HttpRequestMessage request = new(HttpMethod.Post, requestUri);
 
-            var post = JsonSerializer.Serialize(new {size = 0, languages = "", uidInfo = UpdateID, updateId = UpdateID});
-            var body = $"[{post}]";
+            string post = JsonSerializer.Serialize(new { size = 0, languages = "", uidInfo = UpdateID, updateId = UpdateID });
+            string body = $"[{post}]";
 
-            var requestContent = new MultipartFormDataContent
+            using MultipartFormDataContent requestContent = new()
             {
                 { new StringContent(body), "updateIds" }
             };
 
             request.Content = requestContent;
 
-            var response = new HttpResponseMessage();
-
+            HttpResponseMessage response;
             try
             {
                 response = await client.SendAsync(request);
@@ -196,26 +48,15 @@ namespace Poushec.UpdateCatalogParser.Models
             return await response.Content.ReadAsStringAsync();
         }
 
-        protected void ParseDownloadLinks(string downloadPageContent)
-        {   
-            var downloadLinkMatches = _downloadLinkRegex.Matches(downloadPageContent);
-
-            if (!downloadLinkMatches.Any())
-            {
-                throw new UnableToCollectUpdateDetailsException($"Downloads page does not contains any valid download links");
-            }
-
-            DownloadLinks = downloadLinkMatches.Select(mt => mt.Value).ToList();
-        }
-
         protected async Task GetDetailsPage(HttpClient client)
         {
-            var RequestUri = $"https://www.catalog.update.microsoft.com/ScopedViewInline.aspx?updateid={this.UpdateID}";
-            var response = new HttpResponseMessage();
+            string requestUri = $"https://www.catalog.update.microsoft.com/ScopedViewInline.aspx?updateid={UpdateID}";
+
+            HttpResponseMessage response;
 
             try
             {
-                response = await client.SendAsync(new HttpRequestMessage() { RequestUri = new Uri(RequestUri) } );
+                response = await client.SendAsync(new HttpRequestMessage() { RequestUri = new Uri(requestUri) });
             }
             catch (TaskCanceledException ex)
             {
@@ -223,17 +64,15 @@ namespace Poushec.UpdateCatalogParser.Models
             }
 
             if (!response.IsSuccessStatusCode)
-            {
                 throw new UnableToCollectUpdateDetailsException($"Catalog responded with {response.StatusCode} code");
-            }
 
-            var tempPage = new HtmlDocument();
+            HtmlDocument tempPage = new();
             tempPage.Load(await response.Content.ReadAsStreamAsync());
-            var errorDiv = tempPage.GetElementbyId("errorPageDisplayedError"); 
+            HtmlNode errorDiv = tempPage.GetElementbyId("errorPageDisplayedError");
 
             if (errorDiv != null)
             {
-                var errorCode = errorDiv.LastChild.InnerText.Trim().Replace("]", "");
+                string errorCode = errorDiv.LastChild.InnerText.Trim().Replace("]", "");
 
                 if (errorCode == "8DDD0010")
                 {
@@ -251,5 +90,175 @@ namespace Poushec.UpdateCatalogParser.Models
 
             _detailsPage = tempPage;
         }
+
+        protected void ParseCommonDetails()
+        {
+            if (_detailsPage is null)
+            {
+                throw new ParseHtmlPageException("_parseCommonDetails() failed. _detailsPage is null");
+            }
+
+            Description = _detailsPage.GetElementbyId("ScopedViewHandler_desc").InnerText;
+
+            _detailsPage.GetElementbyId("archDiv")
+                .LastChild
+                .InnerText.Trim()
+                .Split(",")
+                .ToList()
+                .ForEach(arch =>
+                {
+                    Architectures.Add(arch.Trim());
+                });
+
+            _detailsPage.GetElementbyId("languagesDiv")
+                .LastChild
+                .InnerText.Trim()
+                .Split(",")
+                .ToList()
+                .ForEach(lang =>
+                {
+                    SupportedLanguages.Add(lang.Trim());
+                });
+
+            string moreInfoDivContent = _detailsPage.GetElementbyId("moreInfoDiv").InnerHtml;
+            MatchCollection moreInfoUrlMatches = Validation.UrlValidators.BasicUrlRegex().Matches(moreInfoDivContent);
+
+            if (moreInfoUrlMatches.Any())
+            {
+                MoreInformation = moreInfoUrlMatches.Select(match => match.Value)
+                    .Distinct()
+                    .ToList();
+            }
+
+            string supportUrlDivContent = _detailsPage.GetElementbyId("suportUrlDiv").InnerHtml;
+            MatchCollection supportUrlMatches = Validation.UrlValidators.BasicUrlRegex().Matches(supportUrlDivContent);
+
+            if (supportUrlMatches.Any())
+            {
+                SupportUrl = supportUrlMatches.Select(match => match.Value)
+                    .Distinct()
+                    .ToList();
+            }
+
+            RestartBehavior = _detailsPage.GetElementbyId("ScopedViewHandler_rebootBehavior").InnerText;
+
+            MayRequestUserInput = _detailsPage.GetElementbyId("ScopedViewHandler_userInput").InnerText;
+
+            MustBeInstalledExclusively = _detailsPage.GetElementbyId("ScopedViewHandler_installationImpact").InnerText;
+
+            RequiresNetworkConnectivity = _detailsPage.GetElementbyId("ScopedViewHandler_connectivity").InnerText;
+
+            HtmlNode uninstallNotesDiv = _detailsPage.GetElementbyId("uninstallNotesDiv");
+
+            if (uninstallNotesDiv.ChildNodes.Count == 3)
+            {
+                UninstallNotes = uninstallNotesDiv.LastChild.InnerText.Trim();
+            }
+            else
+            {
+                UninstallNotes = _detailsPage.GetElementbyId("uninstallNotesDiv")
+                    .ChildNodes[3]
+                    .InnerText.Trim();
+            }
+
+            UninstallSteps = _detailsPage.GetElementbyId("uninstallStepsDiv")
+                .LastChild
+                .InnerText.Trim();
+        }
+
+        protected void ParseDownloadLinks(string downloadPageContent)
+        {
+            MatchCollection downloadLinkMatches = Validation.UrlValidators.DownloadLinkRegex().Matches(downloadPageContent);
+
+            if (!downloadLinkMatches.Any())
+                throw new UnableToCollectUpdateDetailsException("Downloads page does not contains any valid download links");
+
+            DownloadLinks = downloadLinkMatches.Select(mt => mt.Value).ToList();
+        }
+
+        internal UpdateBase(CatalogSearchResult resultRow)
+        {
+            UpdateID = resultRow.UpdateID;
+            Title = resultRow.Title;
+            Classification = resultRow.Classification;
+            LastUpdated = resultRow.LastUpdated;
+            Size = resultRow.Size;
+            SizeInBytes = resultRow.SizeInBytes;
+            Products = resultRow.Products.Trim().Split(",").ToList();
+        }
+
+        internal UpdateBase(UpdateBase updateBase)
+        {
+            _detailsPage = updateBase._detailsPage;
+            Title = updateBase.Title;
+            UpdateID = updateBase.UpdateID;
+            Products = updateBase.Products;
+            Classification = updateBase.Classification;
+            LastUpdated = updateBase.LastUpdated;
+            Size = updateBase.Size;
+            SizeInBytes = updateBase.SizeInBytes;
+            DownloadLinks = updateBase.DownloadLinks;
+            Description = updateBase.Description;
+            Architectures = updateBase.Architectures;
+            SupportedLanguages = updateBase.SupportedLanguages;
+            MoreInformation = updateBase.MoreInformation;
+            SupportUrl = updateBase.SupportUrl;
+            RestartBehavior = updateBase.RestartBehavior;
+            MayRequestUserInput = updateBase.MayRequestUserInput;
+            MustBeInstalledExclusively = updateBase.MustBeInstalledExclusively;
+            RequiresNetworkConnectivity = updateBase.RequiresNetworkConnectivity;
+            UninstallNotes = updateBase.UninstallNotes;
+            UninstallSteps = updateBase.UninstallSteps;
+        }
+
+        internal async Task ParseCommonDetails(HttpClient client)
+        {
+            await GetDetailsPage(client);
+            string downloadPageContent = await GetDownloadPageContent(client);
+
+            ParseCommonDetails();
+            ParseDownloadLinks(downloadPageContent);
+        }
+
+        public List<string> Architectures { get; set; } = new();
+
+        public string Classification { get; set; }
+
+        // Info from details page
+        public string Description { get; set; } = string.Empty;
+
+        // Download links from download page
+        public List<string> DownloadLinks { get; set; } = new();
+
+        public DateOnly LastUpdated { get; set; }
+
+        public string MayRequestUserInput { get; set; } = string.Empty;
+
+        public List<string> MoreInformation { get; set; } = new();
+
+        public string MustBeInstalledExclusively { get; set; } = string.Empty;
+
+        public List<string> Products { get; set; }
+
+        public string RequiresNetworkConnectivity { get; set; } = string.Empty;
+
+        public string RestartBehavior { get; set; } = string.Empty;
+
+        public string Size { get; set; }
+
+        public int SizeInBytes { get; set; }
+
+        public List<string> SupportedLanguages { get; set; } = new();
+
+        public List<string> SupportUrl { get; set; } = new();
+
+        // Info from search results
+        public string Title { get; set; }
+
+        public string UninstallNotes { get; set; } = string.Empty;
+
+        public string UninstallSteps { get; set; } = string.Empty;
+
+        public string UpdateID { get; set; }
     }
 }
