@@ -10,6 +10,7 @@ using Poushec.UpdateCatalogParser.Enums;
 using System.Threading;
 using System.IO;
 using System.Web;
+using System.Drawing;
 
 namespace Poushec.UpdateCatalogParser
 {
@@ -20,6 +21,32 @@ namespace Poushec.UpdateCatalogParser
     {
         private readonly byte _pageReloadAttempts = 0;
         private readonly HttpClient _httpClient = null;
+
+        public static CatalogSearchResult ParseCatalogSearchResultFromResultsTableRow(HtmlNode resultsRow)
+        {
+            HtmlNodeCollection rowCells = resultsRow.SelectNodes("td");
+
+            string title = rowCells[1].InnerText.Trim();
+            string products = rowCells[2].InnerText.Trim();
+            string classification = rowCells[3].InnerText.Trim();
+            DateOnly lastUpdated = DateOnly.Parse(rowCells[4].InnerText.Trim());
+            string version = rowCells[5].InnerText.Trim();
+            string size = rowCells[6].SelectNodes("span")[0].InnerText;
+            int sizeInBytes = int.Parse(rowCells[6].SelectNodes("span")[1].InnerHtml);
+            string updateID = rowCells[7].SelectNodes("input")[0].Id;
+
+            return new CatalogSearchResult()
+            {
+                Title = title,
+                Products = products,
+                Classification = classification,
+                LastUpdated = lastUpdated,
+                Version = version,
+                Size = size,
+                SizeInBytes = sizeInBytes,
+                UpdateID = updateID
+            };
+        }
 
         private static CatalogResponse ParseCatalogResponseFromHtmlPage(HtmlDocument htmlDoc, string searchQueryUri)
         {
@@ -41,7 +68,7 @@ namespace Poushec.UpdateCatalogParser
 
             foreach (HtmlNode resultsRow in searchResultsRows.Skip(1)) // First row is always a headerRow 
             {
-                CatalogSearchResult catalogSearchResult = CatalogSearchResult.ParseFromResultsTableRow(resultsRow);
+                CatalogSearchResult catalogSearchResult = ParseCatalogSearchResultFromResultsTableRow(resultsRow);
                 searchResults.Add(catalogSearchResult);
             }
 
