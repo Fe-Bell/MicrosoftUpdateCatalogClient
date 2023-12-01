@@ -22,7 +22,7 @@ namespace Poushec.UpdateCatalogParser.Models
         public string Version { get; set; }
 
         [JsonConstructor]
-        public CatalogSearchResult()
+        internal CatalogSearchResult()
         {
             
         }
