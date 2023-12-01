@@ -8,6 +8,7 @@ using Poushec.UpdateCatalogParser.Models;
 using Poushec.UpdateCatalogParser.Exceptions;
 using static System.Web.HttpUtility;
 using Poushec.UpdateCatalogParser.Enums;
+using System.Threading;
 
 namespace Poushec.UpdateCatalogParser
 {
@@ -16,19 +17,19 @@ namespace Poushec.UpdateCatalogParser
     /// </summary>
     public class CatalogClient
     {
-        private readonly byte _pageReloadAttempts;
-        internal HttpClient _client;
+        private readonly byte pageReloadAttempts = 0;
+        private readonly HttpClient httpClient = null;
 
         public CatalogClient(byte pageReloadAttemptsAllowed = 3)
         {
-            _client = new HttpClient();
-            _pageReloadAttempts = pageReloadAttemptsAllowed;
+            httpClient = new HttpClient();
+            pageReloadAttempts = pageReloadAttemptsAllowed;
         }
 
         public CatalogClient(HttpClient client, byte pageReloadAttemptsAllowed = 3)
         {
-            _client = client;
-            _pageReloadAttempts = pageReloadAttemptsAllowed;
+            httpClient = client;
+            pageReloadAttempts = pageReloadAttemptsAllowed;
         }
         
         /// <summary>
@@ -53,25 +54,26 @@ namespace Poushec.UpdateCatalogParser
             string Query, 
             bool ignoreDuplicates = true, 
             SortBy sortBy = SortBy.None, 
-            SortDirection sortDirection = SortDirection.Descending
+            SortDirection sortDirection = SortDirection.Descending,
+            CancellationToken cancellationToken = default
         )
         {
             string catalogBaseUrl = "https://www.catalog.update.microsoft.com/Search.aspx";
             string searchQueryUrl = $"{catalogBaseUrl}?q={UrlEncode(Query)}"; 
             
             CatalogResponse lastCatalogResponse = null;
-            byte pageReloadAttemptsLeft = _pageReloadAttempts;
+            byte pageReloadAttemptsLeft = pageReloadAttempts;
             
             while (lastCatalogResponse is null)
             {
                 if (pageReloadAttemptsLeft == 0)
                 {
-                    throw new CatalogErrorException($"Search results page was not successfully loaded after {_pageReloadAttempts} attempts to refresh it");
+                    throw new CatalogErrorException($"Search results page was not successfully loaded after {pageReloadAttempts} attempts to refresh it");
                 }
 
                 try
                 {
-                    lastCatalogResponse = await SendSearchQueryAsync(searchQueryUrl);
+                    lastCatalogResponse = await SendSearchQueryAsync(searchQueryUrl, cancellationToken);
                 }
                 catch (TaskCanceledException)
                 {
@@ -96,30 +98,30 @@ namespace Poushec.UpdateCatalogParser
             if (sortBy is not SortBy.None)
             {
                 // This will sort results in the ascending order
-                lastCatalogResponse = await SortSearchResults(Query, lastCatalogResponse, sortBy);
+                lastCatalogResponse = await SortSearchResults(Query, lastCatalogResponse, sortBy, cancellationToken);
             
                 if (sortDirection is SortDirection.Descending)
                 {
                     // The only way to sort results in the descending order is to send the same request again 
-                    lastCatalogResponse = await SortSearchResults(Query, lastCatalogResponse, sortBy);
+                    lastCatalogResponse = await SortSearchResults(Query, lastCatalogResponse, sortBy, cancellationToken);
                 }
             }
             
             List<CatalogSearchResult> searchResults = lastCatalogResponse.SearchResults;
-            pageReloadAttemptsLeft = _pageReloadAttempts;
+            pageReloadAttemptsLeft = pageReloadAttempts;
             
-            while (!lastCatalogResponse.FinalPage)
+            while (!lastCatalogResponse.IsFinalPage)
             {
                 if (pageReloadAttemptsLeft == 0)
                 {
-                    throw new CatalogErrorException($"One of the search result pages was not successfully loaded after {_pageReloadAttempts} attempts to refresh it");
+                    throw new CatalogErrorException($"One of the search result pages was not successfully loaded after {pageReloadAttempts} attempts to refresh it");
                 }
 
                 try
                 {
-                    lastCatalogResponse = await lastCatalogResponse.ParseNextPageAsync();
+                    lastCatalogResponse = await lastCatalogResponse.ParseNextPageAsync(cancellationToken);
                     searchResults.AddRange(lastCatalogResponse.SearchResults);
-                    pageReloadAttemptsLeft = _pageReloadAttempts; // Reset page refresh attempts count
+                    pageReloadAttemptsLeft = pageReloadAttempts; // Reset page refresh attempts count
                 }
                 catch (TaskCanceledException) 
                 {
@@ -161,25 +163,26 @@ namespace Poushec.UpdateCatalogParser
         public async Task<CatalogResponse> GetFirstPageFromSearchQueryAsync(
             string Query, 
             SortBy sortBy = SortBy.None, 
-            SortDirection sortDirection = SortDirection.Descending
+            SortDirection sortDirection = SortDirection.Descending,
+            CancellationToken cancellationToken = default
         )
         {
             string catalogBaseUrl = "https://www.catalog.update.microsoft.com/Search.aspx";
             string searchQueryUrl = $"{catalogBaseUrl}?q={UrlEncode(Query)}"; 
             
             CatalogResponse catalogFirstPage = null;
-            byte pageReloadAttemptsLeft = _pageReloadAttempts;
+            byte pageReloadAttemptsLeft = pageReloadAttempts;
             
             while (catalogFirstPage is null)
             {
                 if (pageReloadAttemptsLeft == 0)
                 {
-                    throw new CatalogErrorException($"Search results page was not successfully loaded after {_pageReloadAttempts} attempts to refresh it");
+                    throw new CatalogErrorException($"Search results page was not successfully loaded after {pageReloadAttempts} attempts to refresh it");
                 }
 
                 try
                 {
-                    catalogFirstPage = await SendSearchQueryAsync(searchQueryUrl);
+                    catalogFirstPage = await SendSearchQueryAsync(searchQueryUrl, cancellationToken);
                 }
                 catch (TaskCanceledException)
                 {
@@ -199,12 +202,12 @@ namespace Poushec.UpdateCatalogParser
             if (sortBy is not SortBy.None)
             {
                 // This will sort results in the ascending order
-                catalogFirstPage = await SortSearchResults(Query, catalogFirstPage, sortBy);
+                catalogFirstPage = await SortSearchResults(Query, catalogFirstPage, sortBy, cancellationToken);
             
                 if (sortDirection is SortDirection.Descending)
                 {
                     // The only way to sort results in the descending order is to send the same request again 
-                    catalogFirstPage = await SortSearchResults(Query, catalogFirstPage, sortBy);
+                    catalogFirstPage = await SortSearchResults(Query, catalogFirstPage, sortBy, cancellationToken);
                 }
             }
 
@@ -216,11 +219,11 @@ namespace Poushec.UpdateCatalogParser
         /// </summary>
         /// <param name="searchResult">CatalogSearchResult from search query</param>
         /// <returns>Null is request was unsuccessful or UpdateBase (Driver/Update) object with all collected details</returns>
-        public async Task<UpdateBase> TryGetUpdateDetailsAsync(CatalogSearchResult searchResult)
+        public async Task<UpdateBase> TryGetUpdateDetailsAsync(CatalogSearchResult searchResult, CancellationToken cancellationToken = default)
         {
             try
             {
-                var update = await GetUpdateDetailsAsync(searchResult);
+                UpdateBase update = await GetUpdateDetailsAsync(searchResult, cancellationToken);
                 return update;
             }
             catch
@@ -239,17 +242,17 @@ namespace Poushec.UpdateCatalogParser
         /// <exception cref="CatalogErrorException">Thrown when catalog response with an error page with unknown error code</exception>
         /// <exception cref="RequestToCatalogTimedOutException">Thrown when request to catalog was canceled due to timeout</exception>
         /// <exception cref="ParseHtmlPageException">Thrown when function was not able to parse ScopedView HTML page</exception>
-        public async Task<UpdateBase> GetUpdateDetailsAsync(CatalogSearchResult searchResult)
+        public async Task<UpdateBase> GetUpdateDetailsAsync(CatalogSearchResult searchResult, CancellationToken cancellationToken = default)
         {
-            var updateBase = new UpdateBase(searchResult);
+            UpdateBase updateBase = new(searchResult);
 
-            byte pageReloadAttemptsLeft = _pageReloadAttempts;
+            byte pageReloadAttemptsLeft = pageReloadAttempts;
 
             while (true)
             {
                 try 
                 {
-                    await updateBase.ParseCommonDetails(_client);
+                    await updateBase.ParseCommonDetails(httpClient, cancellationToken);
                     break;
                 }
                 catch (Exception ex)
@@ -258,7 +261,7 @@ namespace Poushec.UpdateCatalogParser
 
                     if (pageReloadAttemptsLeft == 0)
                     {
-                        throw new UnableToCollectUpdateDetailsException($"Failed to properly parse update details page after {_pageReloadAttempts} attempts", ex);
+                        throw new UnableToCollectUpdateDetailsException($"Failed to properly parse update details page after {pageReloadAttempts} attempts", ex);
                     }
                 }
                 
@@ -266,7 +269,7 @@ namespace Poushec.UpdateCatalogParser
 
             if (updateBase.Classification.Contains("Driver"))
             {
-                var driverUpdate = new Driver(updateBase);
+                Driver driverUpdate = new(updateBase);
 
                 return driverUpdate;
             }
@@ -288,7 +291,7 @@ namespace Poushec.UpdateCatalogParser
             }
         }
         
-        private async Task<CatalogResponse> SortSearchResults(string searchQuery, CatalogResponse unsortedResponse, SortBy sortBy)
+        private async Task<CatalogResponse> SortSearchResults(string searchQuery, CatalogResponse unsortedResponse, SortBy sortBy, CancellationToken cancellationToken = default)
         {
             string eventTarget = sortBy switch 
             {
@@ -313,29 +316,29 @@ namespace Poushec.UpdateCatalogParser
 
             var requestContent = new FormUrlEncodedContent(formData); 
 
-            HttpResponseMessage response = await _client.PostAsync(unsortedResponse.SearchQueryUri, requestContent);
+            HttpResponseMessage response = await httpClient.PostAsync(unsortedResponse.SearchQueryUri, requestContent, cancellationToken);
             response.EnsureSuccessStatusCode();
             
             var HtmlDoc = new HtmlDocument();
-            HtmlDoc.Load(await response.Content.ReadAsStreamAsync());
+            HtmlDoc.Load(await response.Content.ReadAsStreamAsync(cancellationToken));
 
-            return CatalogResponse.ParseFromHtmlPage(HtmlDoc, _client, unsortedResponse.SearchQueryUri);
+            return CatalogResponse.ParseFromHtmlPage(HtmlDoc, httpClient, unsortedResponse.SearchQueryUri);
         }
 
-        private async Task<CatalogResponse> SendSearchQueryAsync(string requestUri)
+        private async Task<CatalogResponse> SendSearchQueryAsync(string requestUri, CancellationToken cancellationToken = default)
         {
-            HttpResponseMessage response = await _client.GetAsync(requestUri);
+            HttpResponseMessage response = await httpClient.GetAsync(requestUri, cancellationToken);
             response.EnsureSuccessStatusCode();
             
             var HtmlDoc = new HtmlDocument();
-            HtmlDoc.Load(await response.Content.ReadAsStreamAsync());
+            HtmlDoc.Load(await response.Content.ReadAsStreamAsync(cancellationToken));
 
             if (HtmlDoc.GetElementbyId("ctl00_catalogBody_noResultText") is not null)
             {
                 throw new CatalogNoResultsException();
             }
 
-            return CatalogResponse.ParseFromHtmlPage(HtmlDoc, _client, requestUri);
+            return CatalogResponse.ParseFromHtmlPage(HtmlDoc, httpClient, requestUri);
         }
     }
 }

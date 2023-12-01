@@ -9,7 +9,7 @@ namespace Poushec.UpdateCatalogParser.Models
     {
         private void ParseDriverDetails()
         {
-            if (_detailsPage is null)
+            if (detailsPage is null)
             {
                 throw new ParseHtmlPageException("Failed to parse update details. _details page is null");
             }
@@ -17,13 +17,13 @@ namespace Poushec.UpdateCatalogParser.Models
             try
             {
                 HardwareIDs = ParseHardwareIDs();
-                Company = _detailsPage.GetElementbyId("ScopedViewHandler_company").InnerText;
-                DriverManufacturer = _detailsPage.GetElementbyId("ScopedViewHandler_manufacturer").InnerText;
-                DriverClass = _detailsPage.GetElementbyId("ScopedViewHandler_driverClass").InnerText;
-                DriverModel = _detailsPage.GetElementbyId("ScopedViewHandler_driverModel").InnerText;
-                DriverProvider = _detailsPage.GetElementbyId("ScopedViewHandler_driverProvider").InnerText;
-                DriverVersion = _detailsPage.GetElementbyId("ScopedViewHandler_version").InnerText;
-                VersionDate = DateOnly.Parse(_detailsPage.GetElementbyId("ScopedViewHandler_versionDate").InnerText);
+                Company = detailsPage.GetElementbyId("ScopedViewHandler_company").InnerText;
+                DriverManufacturer = detailsPage.GetElementbyId("ScopedViewHandler_manufacturer").InnerText;
+                DriverClass = detailsPage.GetElementbyId("ScopedViewHandler_driverClass").InnerText;
+                DriverModel = detailsPage.GetElementbyId("ScopedViewHandler_driverModel").InnerText;
+                DriverProvider = detailsPage.GetElementbyId("ScopedViewHandler_driverProvider").InnerText;
+                DriverVersion = detailsPage.GetElementbyId("ScopedViewHandler_version").InnerText;
+                VersionDate = DateOnly.Parse(detailsPage.GetElementbyId("ScopedViewHandler_versionDate").InnerText);
             }
             catch (Exception ex)
             {
@@ -33,12 +33,12 @@ namespace Poushec.UpdateCatalogParser.Models
 
         private List<string> ParseHardwareIDs()
         {
-            if (_detailsPage is null)
+            if (detailsPage is null)
             {
                 throw new ParseHtmlPageException("Failed to parse update details. _details page is null");
             }
 
-            var hwIdsDivs = _detailsPage.GetElementbyId("driverhwIDs");
+            var hwIdsDivs = detailsPage.GetElementbyId("driverhwIDs");
 
             if (hwIdsDivs == null)
             {

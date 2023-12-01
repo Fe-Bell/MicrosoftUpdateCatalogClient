@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
 using Poushec.UpdateCatalogParser.Exceptions;
@@ -16,9 +18,9 @@ namespace Poushec.UpdateCatalogParser.Models
     /// </summary>
     public class UpdateBase
     {
-        protected HtmlDocument _detailsPage;
+        protected HtmlDocument detailsPage;
 
-        private async Task<string> GetDownloadPageContent(HttpClient client)
+        private async Task<string> GetDownloadPageContent(HttpClient client, CancellationToken cancellationToken = default)
         {
             string requestUri = "https://www.catalog.update.microsoft.com/DownloadDialog.aspx";
 
@@ -52,7 +54,7 @@ namespace Poushec.UpdateCatalogParser.Models
             HttpResponseMessage response;
             try
             {
-                response = await client.SendAsync(request);
+                response = await client.SendAsync(request, cancellationToken);
             }
             catch (TaskCanceledException)
             {
@@ -61,62 +63,62 @@ namespace Poushec.UpdateCatalogParser.Models
 
             response.EnsureSuccessStatusCode();
 
-            return await response.Content.ReadAsStringAsync();
+            return await response.Content.ReadAsStringAsync(cancellationToken);
         }
 
-        protected async Task GetDetailsPage(HttpClient client)
+        protected async Task GetDetailsPage(HttpClient client, CancellationToken cancellationToken = default)
         {
             string requestUri = $"https://www.catalog.update.microsoft.com/ScopedViewInline.aspx?updateid={UpdateID}";
 
-            HttpResponseMessage response;
-
             try
             {
-                response = await client.SendAsync(new HttpRequestMessage() { RequestUri = new Uri(requestUri) });
+                using HttpResponseMessage response = await client.GetAsync(requestUri, cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                    throw new UnableToCollectUpdateDetailsException($"Catalog responded with {response.StatusCode} code");
+
+                HtmlDocument tempPage = new();
+
+                using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+
+                tempPage.Load(stream);
+
+                HtmlNode errorDiv = tempPage.GetElementbyId("errorPageDisplayedError");
+
+                if (errorDiv != null)
+                {
+                    string errorCode = errorDiv.LastChild.InnerText.Trim().Replace("]", "");
+
+                    if (errorCode.Equals("8DDD0010", StringComparison.OrdinalIgnoreCase))
+                        throw new UnableToCollectUpdateDetailsException("Catalog cannot proceed your request right now. Send request again later");
+                    else if (errorCode.Equals("8DDD0024", StringComparison.OrdinalIgnoreCase))
+                        throw new UpdateWasNotFoundException("Update by this UpdateID does not exists or was removed");
+                    else
+                        throw new CatalogErrorException($"Catalog returned unknown error code: {errorCode}");
+                }
+
+                detailsPage = tempPage;
             }
             catch (TaskCanceledException ex)
             {
                 throw new RequestToCatalogTimedOutException("Catalog was not responded", ex);
             }
-
-            if (!response.IsSuccessStatusCode)
-                throw new UnableToCollectUpdateDetailsException($"Catalog responded with {response.StatusCode} code");
-
-            HtmlDocument tempPage = new();
-            tempPage.Load(await response.Content.ReadAsStreamAsync());
-            HtmlNode errorDiv = tempPage.GetElementbyId("errorPageDisplayedError");
-
-            if (errorDiv != null)
+            finally
             {
-                string errorCode = errorDiv.LastChild.InnerText.Trim().Replace("]", "");
 
-                if (errorCode == "8DDD0010")
-                {
-                    throw new UnableToCollectUpdateDetailsException("Catalog cannot proceed your request right now. Send request again later");
-                }
-                else if (errorCode == "8DDD0024")
-                {
-                    throw new UpdateWasNotFoundException("Update by this UpdateID does not exists or was removed");
-                }
-                else
-                {
-                    throw new CatalogErrorException($"Catalog returned unknown error code: {errorCode}");
-                }
             }
-
-            _detailsPage = tempPage;
         }
 
         protected void ParseCommonDetails()
         {
-            if (_detailsPage is null)
+            if (detailsPage is null)
             {
                 throw new ParseHtmlPageException("_parseCommonDetails() failed. _detailsPage is null");
             }
 
-            Description = _detailsPage.GetElementbyId("ScopedViewHandler_desc").InnerText;
+            Description = detailsPage.GetElementbyId("ScopedViewHandler_desc").InnerText;
 
-            _detailsPage.GetElementbyId("archDiv")
+            detailsPage.GetElementbyId("archDiv")
                 .LastChild
                 .InnerText.Trim()
                 .Split(",")
@@ -126,7 +128,7 @@ namespace Poushec.UpdateCatalogParser.Models
                     Architectures.Add(arch.Trim());
                 });
 
-            _detailsPage.GetElementbyId("languagesDiv")
+            detailsPage.GetElementbyId("languagesDiv")
                 .LastChild
                 .InnerText.Trim()
                 .Split(",")
@@ -136,7 +138,7 @@ namespace Poushec.UpdateCatalogParser.Models
                     SupportedLanguages.Add(lang.Trim());
                 });
 
-            string moreInfoDivContent = _detailsPage.GetElementbyId("moreInfoDiv").InnerHtml;
+            string moreInfoDivContent = detailsPage.GetElementbyId("moreInfoDiv").InnerHtml;
             MatchCollection moreInfoUrlMatches = Validation.UrlValidators.BasicUrlRegex().Matches(moreInfoDivContent);
 
             if (moreInfoUrlMatches.Any())
@@ -146,7 +148,7 @@ namespace Poushec.UpdateCatalogParser.Models
                     .ToList();
             }
 
-            string supportUrlDivContent = _detailsPage.GetElementbyId("suportUrlDiv").InnerHtml;
+            string supportUrlDivContent = detailsPage.GetElementbyId("suportUrlDiv").InnerHtml;
             MatchCollection supportUrlMatches = Validation.UrlValidators.BasicUrlRegex().Matches(supportUrlDivContent);
 
             if (supportUrlMatches.Any())
@@ -156,15 +158,15 @@ namespace Poushec.UpdateCatalogParser.Models
                     .ToList();
             }
 
-            RestartBehavior = _detailsPage.GetElementbyId("ScopedViewHandler_rebootBehavior").InnerText;
+            RestartBehavior = detailsPage.GetElementbyId("ScopedViewHandler_rebootBehavior").InnerText;
 
-            MayRequestUserInput = _detailsPage.GetElementbyId("ScopedViewHandler_userInput").InnerText;
+            MayRequestUserInput = detailsPage.GetElementbyId("ScopedViewHandler_userInput").InnerText;
 
-            MustBeInstalledExclusively = _detailsPage.GetElementbyId("ScopedViewHandler_installationImpact").InnerText;
+            MustBeInstalledExclusively = detailsPage.GetElementbyId("ScopedViewHandler_installationImpact").InnerText;
 
-            RequiresNetworkConnectivity = _detailsPage.GetElementbyId("ScopedViewHandler_connectivity").InnerText;
+            RequiresNetworkConnectivity = detailsPage.GetElementbyId("ScopedViewHandler_connectivity").InnerText;
 
-            HtmlNode uninstallNotesDiv = _detailsPage.GetElementbyId("uninstallNotesDiv");
+            HtmlNode uninstallNotesDiv = detailsPage.GetElementbyId("uninstallNotesDiv");
 
             if (uninstallNotesDiv.ChildNodes.Count == 3)
             {
@@ -172,12 +174,12 @@ namespace Poushec.UpdateCatalogParser.Models
             }
             else
             {
-                UninstallNotes = _detailsPage.GetElementbyId("uninstallNotesDiv")
+                UninstallNotes = detailsPage.GetElementbyId("uninstallNotesDiv")
                     .ChildNodes[3]
                     .InnerText.Trim();
             }
 
-            UninstallSteps = _detailsPage.GetElementbyId("uninstallStepsDiv")
+            UninstallSteps = detailsPage.GetElementbyId("uninstallStepsDiv")
                 .LastChild
                 .InnerText.Trim();
         }
@@ -205,7 +207,7 @@ namespace Poushec.UpdateCatalogParser.Models
 
         internal UpdateBase(UpdateBase updateBase)
         {
-            _detailsPage = updateBase._detailsPage;
+            detailsPage = updateBase.detailsPage;
             Title = updateBase.Title;
             UpdateID = updateBase.UpdateID;
             Products = updateBase.Products;
@@ -227,10 +229,10 @@ namespace Poushec.UpdateCatalogParser.Models
             UninstallSteps = updateBase.UninstallSteps;
         }
 
-        internal async Task ParseCommonDetails(HttpClient client)
+        internal async Task ParseCommonDetails(HttpClient client, CancellationToken cancellationToken = default)
         {
-            await GetDetailsPage(client);
-            string downloadPageContent = await GetDownloadPageContent(client);
+            await GetDetailsPage(client, cancellationToken);
+            string downloadPageContent = await GetDownloadPageContent(client, cancellationToken);
 
             ParseCommonDetails();
             ParseDownloadLinks(downloadPageContent);

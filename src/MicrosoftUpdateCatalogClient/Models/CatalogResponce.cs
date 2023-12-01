@@ -4,14 +4,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Poushec.UpdateCatalogParser.Models
 {
     public partial class CatalogResponse
     {
-        private readonly HttpClient _client;
-        private readonly HtmlNode _nextPage;
+        private readonly HttpClient httpClient;
+        private readonly HtmlNode nextPage;
 
         [JsonConstructor]
         public CatalogResponse()
@@ -31,7 +32,7 @@ namespace Poushec.UpdateCatalogParser.Models
             int resultsCount
         )
         {
-            _client = client;
+            httpClient = client;
             SearchQueryUri = searchQueryUri;
 
             SearchResults = searchResults;
@@ -39,7 +40,7 @@ namespace Poushec.UpdateCatalogParser.Models
             EventValidation = eventValidation;
             ViewState = viewState;
             ViewStateGenerator = viewStateGenerator;
-            _nextPage = nextPage;
+            this.nextPage = nextPage;
             ResultsCount = resultsCount;
         }
 
@@ -89,21 +90,19 @@ namespace Poushec.UpdateCatalogParser.Models
 
         public List<CatalogSearchResult> SearchResults;
 
-        public bool FinalPage => _nextPage is null;
+        public bool IsFinalPage => nextPage is null;
 
         /// <summary>
         /// Loads and parses the next page of the search results. If this method is called 
         /// on a final page - CatalogNoResultsException will be thrown
         /// </summary>
         /// <returns>CatalogResponse object representing search query results from the next page</returns>
-        public async Task<CatalogResponse> ParseNextPageAsync()
+        public async Task<CatalogResponse> ParseNextPageAsync(CancellationToken cancellationToken = default)
         {
-            if (FinalPage)
-            {
+            if (IsFinalPage)
                 throw new CatalogNoResultsException("No more search results available. This is a final page.");
-            }
 
-            var formData = new Dictionary<string, string>() 
+            Dictionary<string, string> formData = new() 
             {
                 { "__EVENTTARGET",          "ctl00$catalogBody$nextPageLinkText" },
                 { "__EVENTARGUMENT",        EventArgument },
@@ -112,15 +111,15 @@ namespace Poushec.UpdateCatalogParser.Models
                 { "__EVENTVALIDATION",      EventValidation }
             };
 
-            var requestContent = new FormUrlEncodedContent(formData); 
+            using FormUrlEncodedContent requestContent = new (formData); 
 
-            HttpResponseMessage response = await _client.PostAsync(SearchQueryUri, requestContent);
+            using HttpResponseMessage response = await httpClient.PostAsync(SearchQueryUri, requestContent, cancellationToken);
             response.EnsureSuccessStatusCode();
             
-            var HtmlDoc = new HtmlDocument();
-            HtmlDoc.Load(await response.Content.ReadAsStreamAsync());
+            HtmlDocument HtmlDoc = new();
+            HtmlDoc.Load(await response.Content.ReadAsStreamAsync(cancellationToken));
 
-            return ParseFromHtmlPage(HtmlDoc, _client, SearchQueryUri);
+            return ParseFromHtmlPage(HtmlDoc, httpClient, SearchQueryUri);
         }
     }
 }
