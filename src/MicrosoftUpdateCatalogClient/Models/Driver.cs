@@ -7,21 +7,7 @@ namespace Poushec.UpdateCatalogParser.Models
 {
     public class Driver : UpdateBase
     {
-        public string Company { get; set; } = string.Empty;
-        public string DriverManufacturer { get; set; } = string.Empty;
-        public string DriverClass { get; set; } = string.Empty;
-        public string DriverModel { get; set; } = string.Empty;
-        public string DriverProvider { get; set; } = string.Empty;
-        public string DriverVersion { get; set; } = string.Empty;
-        public DateOnly VersionDate { get; set; } = DateOnly.MinValue;
-        public List<string> HardwareIDs { get; set; } = new();
-
-        public Driver(UpdateBase updateBase) : base(updateBase) 
-        {
-            _parseDriverDetails();
-        }
-
-        private void _parseDriverDetails()
+        private void ParseDriverDetails()
         {
             if (_detailsPage is null)
             {
@@ -30,7 +16,7 @@ namespace Poushec.UpdateCatalogParser.Models
 
             try
             {
-                HardwareIDs = _parseHardwareIDs();
+                HardwareIDs = ParseHardwareIDs();
                 Company = _detailsPage.GetElementbyId("ScopedViewHandler_company").InnerText;
                 DriverManufacturer = _detailsPage.GetElementbyId("ScopedViewHandler_manufacturer").InnerText;
                 DriverClass = _detailsPage.GetElementbyId("ScopedViewHandler_driverClass").InnerText;
@@ -45,7 +31,7 @@ namespace Poushec.UpdateCatalogParser.Models
             }
         }
 
-        private List<string> _parseHardwareIDs()
+        private List<string> ParseHardwareIDs()
         {
             if (_detailsPage is null)
             {
@@ -64,21 +50,42 @@ namespace Poushec.UpdateCatalogParser.Models
             hwIdsDivs.ChildNodes
                 .Where(node => node.Name == "div")
                 .ToList()
-                .ForEach(node => 
+                .ForEach(node =>
                 {
                     var hid = node.ChildNodes
                         .First().InnerText
                         .Trim()
                         .Replace(@"\r\n", "")
                         .ToUpper();
-                    
+
                     if (!string.IsNullOrEmpty(hid))
                     {
                         hwIds.Add(hid);
                     }
                 });
-            
+
             return hwIds;
+        }
+
+        public string Company { get; set; } = string.Empty;
+
+        public string DriverClass { get; set; } = string.Empty;
+
+        public string DriverManufacturer { get; set; } = string.Empty;
+
+        public string DriverModel { get; set; } = string.Empty;
+
+        public string DriverProvider { get; set; } = string.Empty;
+
+        public string DriverVersion { get; set; } = string.Empty;
+
+        public List<string> HardwareIDs { get; set; } = new();
+
+        public DateOnly VersionDate { get; set; } = DateOnly.MinValue;
+
+        public Driver(UpdateBase updateBase) : base(updateBase) 
+        {
+            ParseDriverDetails();
         }
     }
 }

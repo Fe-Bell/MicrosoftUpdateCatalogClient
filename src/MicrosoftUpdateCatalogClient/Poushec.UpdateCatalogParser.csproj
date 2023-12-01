@@ -17,6 +17,8 @@
 			Little library developed to parse catalog.update.microsoft.com search results
 		</Description>
 		<OutputPath>../bin/$(Configuration)/$(Platform)/</OutputPath>
+		<!-- Required to support AoT compilation, specially on .NET 8.0 -->
+		<JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
 	</PropertyGroup>
 
 	<ItemGroup>

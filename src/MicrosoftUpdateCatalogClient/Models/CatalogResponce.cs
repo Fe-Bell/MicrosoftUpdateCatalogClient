@@ -1,10 +1,9 @@
 using HtmlAgilityPack;
 using Poushec.UpdateCatalogParser.Exceptions;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
-using System.Text.RegularExpressions;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace Poushec.UpdateCatalogParser.Models
@@ -12,29 +11,25 @@ namespace Poushec.UpdateCatalogParser.Models
     public partial class CatalogResponse
     {
         private readonly HttpClient _client;
-        private readonly HtmlNode _nextPage; 
-        
-        internal string SearchQueryUri;
-        internal string EventArgument;
-        internal string EventValidation;
-        internal string ViewState;
-        internal string ViewStateGenerator;
+        private readonly HtmlNode _nextPage;
 
-        public List<CatalogSearchResult> SearchResults;
-        public int ResultsCount;
-        public bool FinalPage => _nextPage is null;
+        [JsonConstructor]
+        public CatalogResponse()
+        {
+            
+        }
 
         private CatalogResponse(
             HttpClient client,
             string searchQueryUri,
-            List<CatalogSearchResult> searchResults, 
-            string eventArgument, 
+            List<CatalogSearchResult> searchResults,
+            string eventArgument,
             string eventValidation,
             string viewState,
             string viewStateGenerator,
             HtmlNode nextPage,
             int resultsCount
-        ) 
+        )
         {
             _client = client;
             SearchQueryUri = searchQueryUri;
@@ -47,6 +42,54 @@ namespace Poushec.UpdateCatalogParser.Models
             _nextPage = nextPage;
             ResultsCount = resultsCount;
         }
+
+        internal string EventArgument;
+        internal string EventValidation;
+        internal string SearchQueryUri;
+        internal string ViewState;
+        internal string ViewStateGenerator;
+
+        internal static CatalogResponse ParseFromHtmlPage(HtmlDocument htmlDoc, HttpClient client, string searchQueryUri)
+        {
+            string eventArgument = htmlDoc.GetElementbyId("__EVENTARGUMENT")?.FirstChild?.Attributes["value"]?.Value ?? string.Empty;
+            string eventValidation = htmlDoc.GetElementbyId("__EVENTVALIDATION").GetAttributes().Where(att => att.Name == "value").First().Value;
+            string viewState = htmlDoc.GetElementbyId("__VIEWSTATE").GetAttributes().Where(att => att.Name == "value").First().Value;
+            string viewStateGenerator = htmlDoc.GetElementbyId("__VIEWSTATEGENERATOR").GetAttributes().Where(att => att.Name == "value").First().Value;
+            HtmlNode nextPage = htmlDoc.GetElementbyId("ctl00_catalogBody_nextPageLinkText");
+
+            string resultsCountString = htmlDoc.GetElementbyId("ctl00_catalogBody_searchDuration").InnerText;
+            int resultsCount = int.Parse(Validation.NumericValidators.ResultCountRegex().Match(resultsCountString).Value);
+
+            HtmlNode table = htmlDoc.GetElementbyId("ctl00_catalogBody_updateMatches")
+                ?? throw new CatalogFailedToLoadSearchResultsPageException("Catalog response does not contains a search results table");
+
+            HtmlNodeCollection searchResultsRows = table.SelectNodes("tr");
+
+            List<CatalogSearchResult> searchResults = new();
+
+            foreach (var resultsRow in searchResultsRows.Skip(1)) // First row is always a headerRow 
+            {
+                searchResults.Add(CatalogSearchResult.ParseFromResultsTableRow(resultsRow));
+            }
+
+            return new CatalogResponse(
+                client,
+                searchQueryUri,
+                searchResults,
+                eventArgument,
+                eventValidation,
+                viewState,
+                viewStateGenerator,
+                nextPage,
+                resultsCount
+            );
+        }
+
+        public int ResultsCount;
+
+        public List<CatalogSearchResult> SearchResults;
+
+        public bool FinalPage => _nextPage is null;
 
         /// <summary>
         /// Loads and parses the next page of the search results. If this method is called 
@@ -78,42 +121,6 @@ namespace Poushec.UpdateCatalogParser.Models
             HtmlDoc.Load(await response.Content.ReadAsStreamAsync());
 
             return ParseFromHtmlPage(HtmlDoc, _client, SearchQueryUri);
-        }
-
-        internal static CatalogResponse ParseFromHtmlPage(HtmlDocument htmlDoc, HttpClient client, string searchQueryUri)
-        {
-            string eventArgument = htmlDoc.GetElementbyId("__EVENTARGUMENT")?.FirstChild?.Attributes["value"]?.Value ?? string.Empty;
-            string eventValidation = htmlDoc.GetElementbyId("__EVENTVALIDATION").GetAttributes().Where(att => att.Name == "value").First().Value;
-            string viewState = htmlDoc.GetElementbyId("__VIEWSTATE").GetAttributes().Where(att => att.Name == "value").First().Value;
-            string viewStateGenerator = htmlDoc.GetElementbyId("__VIEWSTATEGENERATOR").GetAttributes().Where(att => att.Name == "value").First().Value;
-            HtmlNode nextPage = htmlDoc.GetElementbyId("ctl00_catalogBody_nextPageLinkText");
-
-            string resultsCountString = htmlDoc.GetElementbyId("ctl00_catalogBody_searchDuration").InnerText;
-            int resultsCount = int.Parse(Validation.NumericValidators.ResultCountRegex().Match(resultsCountString).Value);
-
-            HtmlNode table = htmlDoc.GetElementbyId("ctl00_catalogBody_updateMatches")
-                ?? throw new CatalogFailedToLoadSearchResultsPageException("Catalog response does not contains a search results table");
-
-            HtmlNodeCollection searchResultsRows = table.SelectNodes("tr");
-
-            List<CatalogSearchResult> searchResults = new();
-
-            foreach (var resultsRow in searchResultsRows.Skip(1)) // First row is always a headerRow 
-            {
-                searchResults.Add(CatalogSearchResult.ParseFromResultsTableRow(resultsRow));
-            }
-
-            return new CatalogResponse(
-                client, 
-                searchQueryUri, 
-                searchResults, 
-                eventArgument, 
-                eventValidation, 
-                viewState, 
-                viewStateGenerator, 
-                nextPage, 
-                resultsCount
-            );
         }
     }
 }

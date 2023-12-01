@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
 using Poushec.UpdateCatalogParser.Exceptions;
+using Poushec.UpdateCatalogParser.Serialization;
 
 namespace Poushec.UpdateCatalogParser.Models
 {
@@ -22,8 +23,23 @@ namespace Poushec.UpdateCatalogParser.Models
             string requestUri = "https://www.catalog.update.microsoft.com/DownloadDialog.aspx";
 
             using HttpRequestMessage request = new(HttpMethod.Post, requestUri);
+                       
+            DownloadPageContentPostObject downloadPageContentPostObject = new()
+            {
+                UidInfo = UpdateID,
+                UpdateID = UpdateID
+            };
 
-            string post = JsonSerializer.Serialize(new { size = 0, languages = "", uidInfo = UpdateID, updateId = UpdateID });
+            //Set serialization options with source generators
+            //This allows this library to be used by projects that are AoT publishing ready, specially on .NET 8.0 +
+            //Reflection must be disabled for such usage, therefore we also included a setting at project level to enforce the removal of reflection
+            JsonSerializerOptions jsonSerializerOptions = new()
+            {
+                TypeInfoResolver = MSUCClientJsonSerializerContext.Default
+            };
+            string post = JsonSerializer.Serialize(downloadPageContentPostObject, jsonSerializerOptions);
+
+
             string body = $"[{post}]";
 
             using MultipartFormDataContent requestContent = new()

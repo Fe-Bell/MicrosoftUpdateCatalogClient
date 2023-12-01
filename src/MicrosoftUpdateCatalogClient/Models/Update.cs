@@ -7,39 +7,7 @@ namespace Poushec.UpdateCatalogParser.Models
 {
     public class Update : UpdateBase
     {
-        public string MSRCNumber { get; set; } = string.Empty;
-        public string MSRCSeverity { get; set; } = string.Empty;
-        public string KBArticleNumbers { get; set; } = string.Empty;
-        public List<string> SupersededBy { get; set; } = new();
-        public List<string> Supersedes { get; set; } = new();
-
-        public Update(UpdateBase updateBase) : base(updateBase) 
-        {
-            _parseUpdateDetails();
-        }
-
-        private void _parseUpdateDetails()
-        {
-            if (_detailsPage is null)
-            {
-                throw new ParseHtmlPageException("Failed to parse update details. _details page is null");
-            }
-
-            try
-            {
-                MSRCNumber = _detailsPage.GetElementbyId("securityBullitenDiv").LastChild.InnerText.Trim();
-                MSRCSeverity = _detailsPage.GetElementbyId("ScopedViewHandler_msrcSeverity").InnerText;
-                KBArticleNumbers = _detailsPage.GetElementbyId("kbDiv").LastChild.InnerText.Trim();
-                SupersededBy = _parseSupersededByList();
-                Supersedes = _parseSupersedesList();
-            }
-            catch (Exception ex)
-            {
-                throw new ParseHtmlPageException("Failed to parse Update details", ex);
-            }
-        }
-
-        private List<string> _parseSupersededByList()
+        private List<string> ParseSupersededByList()
         {
             if (_detailsPage is null)
             {
@@ -63,14 +31,14 @@ namespace Poushec.UpdateCatalogParser.Models
                     var updateId = node.ChildNodes[1]
                         .GetAttributeValue("href", "")
                         .Replace("ScopedViewInline.aspx?updateid=", "");
-                    
+
                     supersededBy.Add(updateId);
                 });
 
             return supersededBy;
         }
 
-        private List<string> _parseSupersedesList()
+        private List<string> ParseSupersedesList()
         {
             if (_detailsPage is null)
             {
@@ -85,7 +53,7 @@ namespace Poushec.UpdateCatalogParser.Models
             {
                 return supersedes;
             }
-            
+
             supersedesDivs.ChildNodes
                 .Where(node => node.Name == "div")
                 .ToList()
@@ -95,6 +63,42 @@ namespace Poushec.UpdateCatalogParser.Models
                 });
 
             return supersedes;
+        }
+
+        private void ParseUpdateDetails()
+        {
+            if (_detailsPage is null)
+            {
+                throw new ParseHtmlPageException("Failed to parse update details. _details page is null");
+            }
+
+            try
+            {
+                MSRCNumber = _detailsPage.GetElementbyId("securityBullitenDiv").LastChild.InnerText.Trim();
+                MSRCSeverity = _detailsPage.GetElementbyId("ScopedViewHandler_msrcSeverity").InnerText;
+                KBArticleNumbers = _detailsPage.GetElementbyId("kbDiv").LastChild.InnerText.Trim();
+                SupersededBy = ParseSupersededByList();
+                Supersedes = ParseSupersedesList();
+            }
+            catch (Exception ex)
+            {
+                throw new ParseHtmlPageException("Failed to parse Update details", ex);
+            }
+        }
+
+        public string KBArticleNumbers { get; set; } = string.Empty;
+
+        public string MSRCNumber { get; set; } = string.Empty;
+
+        public string MSRCSeverity { get; set; } = string.Empty;
+
+        public List<string> SupersededBy { get; set; } = new();
+
+        public List<string> Supersedes { get; set; } = new();
+
+        public Update(UpdateBase updateBase) : base(updateBase) 
+        {
+            ParseUpdateDetails();
         }
     }
 }
