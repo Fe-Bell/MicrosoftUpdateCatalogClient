@@ -45,16 +45,17 @@ namespace Poushec.UpdateCatalogParser
                 searchResults.Add(catalogSearchResult);
             }
 
-            return new CatalogResponse(
-                searchQueryUri,
-                searchResults,
-                eventArgument,
-                eventValidation,
-                viewState,
-                viewStateGenerator,
-                resultsCount,
-                nextPage is null
-            );
+            return new CatalogResponse()
+            {
+                SearchResults = searchResults,
+                SearchQueryUri = searchQueryUri,
+                EventArgument = eventArgument,
+                EventValidation = eventValidation,
+                ViewState = viewState,
+                ViewStateGenerator = viewStateGenerator,
+                ResultsCount = resultsCount,
+                IsFinalPage = nextPage is null
+            };
         }
 
         /// <summary>
@@ -184,7 +185,7 @@ namespace Poushec.UpdateCatalogParser
                 try
                 {
                     lastCatalogResponse = await ParseNextCatalogResponseAsync(lastCatalogResponse, cancellationToken);
-                    lastCatalogResponse.SearchResultsI.AddRange(lastCatalogResponse.SearchResultsI);
+                    lastCatalogResponse.GetSearchResults().AddRange(lastCatalogResponse.GetSearchResults());
                     pageReloadAttemptsLeft = _pageReloadAttempts; // Reset page refresh attempts count
                 }
                 catch (TaskCanceledException) 
@@ -203,9 +204,9 @@ namespace Poushec.UpdateCatalogParser
             }
 
             if (ignoreDuplicates)
-                return lastCatalogResponse.SearchResultsI.DistinctBy(result => (result.SizeInBytes, result.Title));
+                return lastCatalogResponse.GetSearchResults().DistinctBy(result => (result.SizeInBytes, result.Title));
 
-            return lastCatalogResponse.SearchResultsI;
+            return lastCatalogResponse.GetSearchResults();
         }
 
         /// <summary>
