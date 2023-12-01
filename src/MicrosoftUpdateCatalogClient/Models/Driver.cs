@@ -7,12 +7,12 @@ namespace Poushec.UpdateCatalogParser.Models
 {
     public class Driver : UpdateBase
     {
-        public string Company { get; set; } = String.Empty;
-        public string DriverManufacturer { get; set; } = String.Empty;
-        public string DriverClass { get; set; } = String.Empty;
-        public string DriverModel { get; set; } = String.Empty;
-        public string DriverProvider { get; set; } = String.Empty;
-        public string DriverVersion { get; set; } = String.Empty;
+        public string Company { get; set; } = string.Empty;
+        public string DriverManufacturer { get; set; } = string.Empty;
+        public string DriverClass { get; set; } = string.Empty;
+        public string DriverModel { get; set; } = string.Empty;
+        public string DriverProvider { get; set; } = string.Empty;
+        public string DriverVersion { get; set; } = string.Empty;
         public DateOnly VersionDate { get; set; } = DateOnly.MinValue;
         public List<string> HardwareIDs { get; set; } = new();
 
@@ -72,7 +72,7 @@ namespace Poushec.UpdateCatalogParser.Models
                         .Replace(@"\r\n", "")
                         .ToUpper();
                     
-                    if (!String.IsNullOrEmpty(hid))
+                    if (!string.IsNullOrEmpty(hid))
                     {
                         hwIds.Add(hid);
                     }

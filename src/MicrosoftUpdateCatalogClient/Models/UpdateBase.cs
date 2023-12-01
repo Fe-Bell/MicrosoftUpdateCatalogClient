@@ -15,10 +15,10 @@ namespace Poushec.UpdateCatalogParser.Models
     /// </summary>
     public class UpdateBase
     {
-        private readonly Regex _urlRegex = new Regex(@"https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)");
-        private readonly Regex _downloadLinkRegex = new Regex(@"(http[s]?\://dl\.delivery\.mp\.microsoft\.com\/[^\'\""]*)|(http[s]?\://download\.windowsupdate\.com\/[^\'\""]*)|(http[s]://catalog\.s\.download\.windowsupdate\.com.*?(?=\'))");
+        private readonly Regex _urlRegex = new(@"https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)");
+        private readonly Regex _downloadLinkRegex = new(@"(http[s]?\://dl\.delivery\.mp\.microsoft\.com\/[^\'\""]*)|(http[s]?\://download\.windowsupdate\.com\/[^\'\""]*)|(http[s]://catalog\.s\.download\.windowsupdate\.com.*?(?=\'))");
 
-        protected HtmlDocument? _detailsPage; 
+        protected HtmlDocument _detailsPage; 
 
         // Info from search results
         public string Title { get; set; }
@@ -30,17 +30,17 @@ namespace Poushec.UpdateCatalogParser.Models
         public int SizeInBytes { get; set; }
 
         // Info from details page
-        public string Description { get; set; } = String.Empty;
+        public string Description { get; set; } = string.Empty;
         public List<string> Architectures { get; set; } = new();
         public List<string> SupportedLanguages { get; set; } = new();
         public List<string> MoreInformation { get; set; } = new();
         public List<string> SupportUrl { get; set; } = new(); 
-        public string RestartBehavior { get; set; } = String.Empty;
-        public string MayRequestUserInput { get; set; } = String.Empty;
-        public string MustBeInstalledExclusively { get; set; } = String.Empty;
-        public string RequiresNetworkConnectivity { get; set; } = String.Empty;
-        public string UninstallNotes { get; set; } = String.Empty;
-        public string UninstallSteps { get; set; } = String.Empty;
+        public string RestartBehavior { get; set; } = string.Empty;
+        public string MayRequestUserInput { get; set; } = string.Empty;
+        public string MustBeInstalledExclusively { get; set; } = string.Empty;
+        public string RequiresNetworkConnectivity { get; set; } = string.Empty;
+        public string UninstallNotes { get; set; } = string.Empty;
+        public string UninstallSteps { get; set; } = string.Empty;
 
         // Download links from download page
         public List<string> DownloadLinks { get; set; } = new();
@@ -82,14 +82,14 @@ namespace Poushec.UpdateCatalogParser.Models
 
         internal async Task ParseCommonDetails(HttpClient client)
         {
-            await _getDetailsPage(client);
-            string downloadPageContent = await _getDownloadPageContent(client);
+            await GetDetailsPage(client);
+            string downloadPageContent = await GetDownloadPageContent(client);
             
-            _parseCommonDetails();
-            _parseDownloadLinks(downloadPageContent);
+            ParseCommonDetails();
+            ParseDownloadLinks(downloadPageContent);
         }
 
-        protected void _parseCommonDetails()
+        protected void ParseCommonDetails()
         {
             if (_detailsPage is null)
             {
@@ -164,7 +164,7 @@ namespace Poushec.UpdateCatalogParser.Models
                 .InnerText.Trim();
         }
 
-        private async Task<string> _getDownloadPageContent(HttpClient client)
+        private async Task<string> GetDownloadPageContent(HttpClient client)
         {
             var RequestUri = "https://www.catalog.update.microsoft.com/DownloadDialog.aspx";
 
@@ -173,8 +173,10 @@ namespace Poushec.UpdateCatalogParser.Models
             var post = JsonSerializer.Serialize(new {size = 0, languages = "", uidInfo = UpdateID, updateId = UpdateID});
             var body = $"[{post}]";
 
-            var requestContent = new MultipartFormDataContent();
-            requestContent.Add(new StringContent(body), "updateIds");
+            var requestContent = new MultipartFormDataContent
+            {
+                { new StringContent(body), "updateIds" }
+            };
 
             request.Content = requestContent;
 
@@ -194,7 +196,7 @@ namespace Poushec.UpdateCatalogParser.Models
             return await response.Content.ReadAsStringAsync();
         }
 
-        protected void _parseDownloadLinks(string downloadPageContent)
+        protected void ParseDownloadLinks(string downloadPageContent)
         {   
             var downloadLinkMatches = _downloadLinkRegex.Matches(downloadPageContent);
 
@@ -206,7 +208,7 @@ namespace Poushec.UpdateCatalogParser.Models
             DownloadLinks = downloadLinkMatches.Select(mt => mt.Value).ToList();
         }
 
-        protected async Task _getDetailsPage(HttpClient client)
+        protected async Task GetDetailsPage(HttpClient client)
         {
             var RequestUri = $"https://www.catalog.update.microsoft.com/ScopedViewInline.aspx?updateid={this.UpdateID}";
             var response = new HttpResponseMessage();

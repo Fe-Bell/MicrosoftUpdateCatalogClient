@@ -16,7 +16,7 @@ namespace Poushec.UpdateCatalogParser
     /// </summary>
     public class CatalogClient
     {
-        private byte _pageReloadAttempts;
+        private readonly byte _pageReloadAttempts;
         internal HttpClient _client;
 
         public CatalogClient(byte pageReloadAttemptsAllowed = 3)
@@ -57,9 +57,9 @@ namespace Poushec.UpdateCatalogParser
         )
         {
             string catalogBaseUrl = "https://www.catalog.update.microsoft.com/Search.aspx";
-            string searchQueryUrl = String.Format($"{catalogBaseUrl}?q={UrlEncode(Query)}"); 
+            string searchQueryUrl = $"{catalogBaseUrl}?q={UrlEncode(Query)}"; 
             
-            CatalogResponse? lastCatalogResponse = null;
+            CatalogResponse lastCatalogResponse = null;
             byte pageReloadAttemptsLeft = _pageReloadAttempts;
             
             while (lastCatalogResponse is null)
@@ -71,7 +71,7 @@ namespace Poushec.UpdateCatalogParser
 
                 try
                 {
-                    lastCatalogResponse = await _sendSearchQueryAsync(searchQueryUrl);
+                    lastCatalogResponse = await SendSearchQueryAsync(searchQueryUrl);
                 }
                 catch (TaskCanceledException)
                 {
@@ -96,12 +96,12 @@ namespace Poushec.UpdateCatalogParser
             if (sortBy is not SortBy.None)
             {
                 // This will sort results in the ascending order
-                lastCatalogResponse = await _sortSearchResults(Query, lastCatalogResponse, sortBy);
+                lastCatalogResponse = await SortSearchResults(Query, lastCatalogResponse, sortBy);
             
                 if (sortDirection is SortDirection.Descending)
                 {
                     // The only way to sort results in the descending order is to send the same request again 
-                    lastCatalogResponse = await _sortSearchResults(Query, lastCatalogResponse, sortBy);
+                    lastCatalogResponse = await SortSearchResults(Query, lastCatalogResponse, sortBy);
                 }
             }
             
@@ -165,9 +165,9 @@ namespace Poushec.UpdateCatalogParser
         )
         {
             string catalogBaseUrl = "https://www.catalog.update.microsoft.com/Search.aspx";
-            string searchQueryUrl = String.Format($"{catalogBaseUrl}?q={UrlEncode(Query)}"); 
+            string searchQueryUrl = $"{catalogBaseUrl}?q={UrlEncode(Query)}"; 
             
-            CatalogResponse? catalogFirstPage = null;
+            CatalogResponse catalogFirstPage = null;
             byte pageReloadAttemptsLeft = _pageReloadAttempts;
             
             while (catalogFirstPage is null)
@@ -179,7 +179,7 @@ namespace Poushec.UpdateCatalogParser
 
                 try
                 {
-                    catalogFirstPage = await _sendSearchQueryAsync(searchQueryUrl);
+                    catalogFirstPage = await SendSearchQueryAsync(searchQueryUrl);
                 }
                 catch (TaskCanceledException)
                 {
@@ -199,12 +199,12 @@ namespace Poushec.UpdateCatalogParser
             if (sortBy is not SortBy.None)
             {
                 // This will sort results in the ascending order
-                catalogFirstPage = await _sortSearchResults(Query, catalogFirstPage, sortBy);
+                catalogFirstPage = await SortSearchResults(Query, catalogFirstPage, sortBy);
             
                 if (sortDirection is SortDirection.Descending)
                 {
                     // The only way to sort results in the descending order is to send the same request again 
-                    catalogFirstPage = await _sortSearchResults(Query, catalogFirstPage, sortBy);
+                    catalogFirstPage = await SortSearchResults(Query, catalogFirstPage, sortBy);
                 }
             }
 
@@ -216,7 +216,7 @@ namespace Poushec.UpdateCatalogParser
         /// </summary>
         /// <param name="searchResult">CatalogSearchResult from search query</param>
         /// <returns>Null is request was unsuccessful or UpdateBase (Driver/Update) object with all collected details</returns>
-        public async Task<UpdateBase?> TryGetUpdateDetailsAsync(CatalogSearchResult searchResult)
+        public async Task<UpdateBase> TryGetUpdateDetailsAsync(CatalogSearchResult searchResult)
         {
             try
             {
@@ -288,7 +288,7 @@ namespace Poushec.UpdateCatalogParser
             }
         }
         
-        private async Task<CatalogResponse> _sortSearchResults(string searchQuery, CatalogResponse unsortedResponse, SortBy sortBy)
+        private async Task<CatalogResponse> SortSearchResults(string searchQuery, CatalogResponse unsortedResponse, SortBy sortBy)
         {
             string eventTarget = sortBy switch 
             {
@@ -322,7 +322,7 @@ namespace Poushec.UpdateCatalogParser
             return CatalogResponse.ParseFromHtmlPage(HtmlDoc, _client, unsortedResponse.SearchQueryUri);
         }
 
-        private async Task<CatalogResponse> _sendSearchQueryAsync(string requestUri)
+        private async Task<CatalogResponse> SendSearchQueryAsync(string requestUri)
         {
             HttpResponseMessage response = await _client.GetAsync(requestUri);
             response.EnsureSuccessStatusCode();

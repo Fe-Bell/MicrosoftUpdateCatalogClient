@@ -11,8 +11,8 @@ namespace Poushec.UpdateCatalogParser.Models
 {
     public class CatalogResponse
     {
-        private HttpClient _client;
-        private HtmlNode? _nextPage; 
+        private readonly HttpClient _client;
+        private readonly HtmlNode _nextPage; 
         
         internal string SearchQueryUri;
         internal string EventArgument;
@@ -82,7 +82,7 @@ namespace Poushec.UpdateCatalogParser.Models
 
         internal static CatalogResponse ParseFromHtmlPage(HtmlDocument htmlDoc, HttpClient client, string searchQueryUri)
         {
-            string eventArgument = htmlDoc.GetElementbyId("__EVENTARGUMENT")?.FirstChild?.Attributes["value"]?.Value ?? String.Empty;
+            string eventArgument = htmlDoc.GetElementbyId("__EVENTARGUMENT")?.FirstChild?.Attributes["value"]?.Value ?? string.Empty;
             string eventValidation = htmlDoc.GetElementbyId("__EVENTVALIDATION").GetAttributes().Where(att => att.Name == "value").First().Value;
             string viewState = htmlDoc.GetElementbyId("__VIEWSTATE").GetAttributes().Where(att => att.Name == "value").First().Value;
             string viewStateGenerator = htmlDoc.GetElementbyId("__VIEWSTATEGENERATOR").GetAttributes().Where(att => att.Name == "value").First().Value;
@@ -91,12 +91,8 @@ namespace Poushec.UpdateCatalogParser.Models
             string resultsCountString = htmlDoc.GetElementbyId("ctl00_catalogBody_searchDuration").InnerText;
             int resultsCount = int.Parse(Regex.Match(resultsCountString, "(?<=of )\\d{1,4}").Value);
 
-            HtmlNode table = htmlDoc.GetElementbyId("ctl00_catalogBody_updateMatches");
-
-            if (table is null)
-            {
-                throw new CatalogFailedToLoadSearchResultsPageException("Catalog response does not contains a search results table");
-            }
+            HtmlNode table = htmlDoc.GetElementbyId("ctl00_catalogBody_updateMatches")
+                ?? throw new CatalogFailedToLoadSearchResultsPageException("Catalog response does not contains a search results table");
 
             HtmlNodeCollection searchResultsRows = table.SelectNodes("tr");
 
