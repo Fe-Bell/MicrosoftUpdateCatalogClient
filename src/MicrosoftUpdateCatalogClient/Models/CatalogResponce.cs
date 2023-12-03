@@ -6,17 +6,15 @@ namespace Poushec.UpdateCatalogParser.Models
 {
     public class CatalogResponse
     {
-        private List<CatalogSearchResult> _searchResults = null;
+        internal string EventArgument { get; set; } = null;
 
-        internal string EventArgument { get; set; }
+        internal string EventValidation { get; set; } = null;
 
-        internal string EventValidation { get; set; }
+        internal string SearchQueryUri { get; set; } = null;
 
-        internal string SearchQueryUri { get; set; }
+        internal string ViewState { get; set; } = null;
 
-        internal string ViewState { get; set; }
-
-        internal string ViewStateGenerator { get; set; }
+        internal string ViewStateGenerator { get; set; } = null;
 
         [JsonConstructor]
         internal CatalogResponse()
@@ -24,23 +22,10 @@ namespace Poushec.UpdateCatalogParser.Models
 
         }
 
-        internal List<CatalogSearchResult> GetSearchResults()
-                    => _searchResults;
+        public bool IsFinalPage { get; internal set; } = true;
 
-        public bool IsFinalPage { get; internal set; }
+        public int ResultsCount { get; internal set; } = default;
 
-        public int ResultsCount { get; internal set; }
-
-        public IEnumerable<CatalogSearchResult> SearchResults 
-        { 
-            get => _searchResults;
-            internal set
-            {
-                if (value is List<CatalogSearchResult> lst)
-                    _searchResults = lst;
-                else
-                    _searchResults = value.ToList();
-            }
-        }
+        public IEnumerable<CatalogSearchResult> SearchResults { get; set; } = Enumerable.Empty<CatalogSearchResult>();
     }
 }

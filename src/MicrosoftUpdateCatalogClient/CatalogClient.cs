@@ -662,8 +662,12 @@ namespace Poushec.UpdateCatalogParser
 
                 try
                 {
+                    List<CatalogSearchResult> lst = new(lastCatalogResponse.SearchResults);
                     lastCatalogResponse = await ParseNextCatalogResponseAsync(lastCatalogResponse, cancellationToken);
-                    lastCatalogResponse.GetSearchResults().AddRange(lastCatalogResponse.GetSearchResults());
+                    lst.AddRange(lastCatalogResponse.SearchResults);
+                    lastCatalogResponse.SearchResults = lst;
+                    lastCatalogResponse.ResultsCount = lst.Count;
+
                     pageReloadAttemptsLeft = PageReloadAttempts; // Reset page refresh attempts count
                 }
                 catch (TaskCanceledException) 
@@ -682,9 +686,9 @@ namespace Poushec.UpdateCatalogParser
             }
 
             if (ignoreDuplicates)
-                return lastCatalogResponse.GetSearchResults().DistinctBy(result => (result.SizeInBytes, result.Title));
+                return lastCatalogResponse.SearchResults.DistinctBy(result => (result.SizeInBytes, result.Title));
 
-            return lastCatalogResponse.GetSearchResults();
+            return lastCatalogResponse.SearchResults;
         }
        
     }

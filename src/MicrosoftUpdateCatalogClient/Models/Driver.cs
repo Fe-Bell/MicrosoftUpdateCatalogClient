@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Poushec.UpdateCatalogParser.Models
 {
@@ -18,7 +19,7 @@ namespace Poushec.UpdateCatalogParser.Models
 
         public string DriverVersion { get; set; } = null;
 
-        public IEnumerable<string> HardwareIDs { get; set; } = null;
+        public IEnumerable<string> HardwareIDs { get; set; } = Enumerable.Empty<string>();
 
         public DateOnly VersionDate { get; set; } = DateOnly.MinValue;
 

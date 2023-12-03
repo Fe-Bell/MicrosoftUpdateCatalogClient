@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Serialization;
 
 namespace Poushec.UpdateCatalogParser.Models
@@ -39,7 +40,7 @@ namespace Poushec.UpdateCatalogParser.Models
             UninstallSteps = updateBase.UninstallSteps;
         }
 
-        public IEnumerable<string> Architectures { get; set; } = null;
+        public IEnumerable<string> Architectures { get; set; } = Enumerable.Empty<string>();
 
         public string Classification { get; set; } = null;
 
@@ -47,17 +48,17 @@ namespace Poushec.UpdateCatalogParser.Models
         public string Description { get; set; } = null;
 
         // Download links from download page
-        public IEnumerable<string> DownloadLinks { get; set; } = null;
+        public IEnumerable<string> DownloadLinks { get; set; } = Enumerable.Empty<string>();
 
         public DateOnly LastUpdated { get; set; } = default;
 
         public string MayRequestUserInput { get; set; } = null;
 
-        public IEnumerable<string> MoreInformation { get; set; } = null;
+        public IEnumerable<string> MoreInformation { get; set; } = Enumerable.Empty<string>();
 
         public string MustBeInstalledExclusively { get; set; } = null;
 
-        public IEnumerable<string> Products { get; set; } = null;
+        public IEnumerable<string> Products { get; set; } = Enumerable.Empty<string>();
 
         public string RequiresNetworkConnectivity { get; set; } = null;
 
@@ -67,9 +68,9 @@ namespace Poushec.UpdateCatalogParser.Models
 
         public int SizeInBytes { get; set; } = default;
 
-        public IEnumerable<string> SupportedLanguages { get; set; } = null;
+        public IEnumerable<string> SupportedLanguages { get; set; } = Enumerable.Empty<string>();
 
-        public IEnumerable<string> SupportUrl { get; set; } = null;
+        public IEnumerable<string> SupportUrl { get; set; } = Enumerable.Empty<string>();
 
         // Info from search results
         public string Title { get; set; }
