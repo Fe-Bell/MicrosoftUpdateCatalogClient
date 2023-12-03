@@ -39,44 +39,44 @@ namespace Poushec.UpdateCatalogParser.Models
             UninstallSteps = updateBase.UninstallSteps;
         }
 
-        public List<string> Architectures { get; set; } = new();
+        public IEnumerable<string> Architectures { get; set; } = null;
 
-        public string Classification { get; set; }
+        public string Classification { get; set; } = null;
 
         // Info from details page
-        public string Description { get; set; } = string.Empty;
+        public string Description { get; set; } = null;
 
         // Download links from download page
-        public List<string> DownloadLinks { get; set; } = new();
+        public IEnumerable<string> DownloadLinks { get; set; } = null;
 
-        public DateOnly LastUpdated { get; set; }
+        public DateOnly LastUpdated { get; set; } = default;
 
-        public string MayRequestUserInput { get; set; } = string.Empty;
+        public string MayRequestUserInput { get; set; } = null;
 
-        public List<string> MoreInformation { get; set; } = new();
+        public IEnumerable<string> MoreInformation { get; set; } = null;
 
-        public string MustBeInstalledExclusively { get; set; } = string.Empty;
+        public string MustBeInstalledExclusively { get; set; } = null;
 
-        public List<string> Products { get; set; }
+        public IEnumerable<string> Products { get; set; } = null;
 
-        public string RequiresNetworkConnectivity { get; set; } = string.Empty;
+        public string RequiresNetworkConnectivity { get; set; } = null;
 
-        public string RestartBehavior { get; set; } = string.Empty;
+        public string RestartBehavior { get; set; } = null;
 
-        public string Size { get; set; }
+        public string Size { get; set; } = null;
 
-        public int SizeInBytes { get; set; }
+        public int SizeInBytes { get; set; } = default;
 
-        public List<string> SupportedLanguages { get; set; } = new();
+        public IEnumerable<string> SupportedLanguages { get; set; } = null;
 
-        public List<string> SupportUrl { get; set; } = new();
+        public IEnumerable<string> SupportUrl { get; set; } = null;
 
         // Info from search results
         public string Title { get; set; }
 
-        public string UninstallNotes { get; set; } = string.Empty;
+        public string UninstallNotes { get; set; } = null;
 
-        public string UninstallSteps { get; set; } = string.Empty;
+        public string UninstallSteps { get; set; } = null;
 
         public string UpdateID { get; set; }
     }

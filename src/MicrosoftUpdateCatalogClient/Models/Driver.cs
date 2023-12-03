@@ -6,19 +6,19 @@ namespace Poushec.UpdateCatalogParser.Models
     public class Driver :
         UpdateBase
     {
-        public string Company { get; set; } = string.Empty;
+        public string Company { get; set; } = null;
 
-        public string DriverClass { get; set; } = string.Empty;
+        public string DriverClass { get; set; } = null;
 
-        public string DriverManufacturer { get; set; } = string.Empty;
+        public string DriverManufacturer { get; set; } = null;
 
-        public string DriverModel { get; set; } = string.Empty;
+        public string DriverModel { get; set; } = null;
 
-        public string DriverProvider { get; set; } = string.Empty;
+        public string DriverProvider { get; set; } = null;
 
-        public string DriverVersion { get; set; } = string.Empty;
+        public string DriverVersion { get; set; } = null;
 
-        public List<string> HardwareIDs { get; set; } = new();
+        public IEnumerable<string> HardwareIDs { get; set; } = null;
 
         public DateOnly VersionDate { get; set; } = DateOnly.MinValue;
 
