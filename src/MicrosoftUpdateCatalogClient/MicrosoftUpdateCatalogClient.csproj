@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<TargetFramework>net7.0</TargetFramework>
-		<PackageId>Poushec.UpdateCatalogParser</PackageId>
+		<PackageId>MicrosoftUpdateCatalogClient</PackageId>
 		<Version>2.2.0</Version>
 		<Authors>Poushec</Authors>
 		<Nullable>disable</Nullable>
@@ -10,8 +10,8 @@
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageTags>microsoft-update-catalog</PackageTags>
-		<PackageProjectUrl>https://github.com/Poushec/Poushec.UpdateCatalogParser</PackageProjectUrl>
-		<RepositoryUrl>https://github.com/Poushec/Poushec.UpdateCatalogParser</RepositoryUrl>
+		<PackageProjectUrl>https://github.com/Poushec/MicrosoftUpdateCatalogClient</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/Poushec/MicrosoftUpdateCatalogClient</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<Description>
 			Little library developed to parse catalog.update.microsoft.com search results

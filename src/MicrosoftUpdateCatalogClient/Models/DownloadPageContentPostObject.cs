@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Poushec.UpdateCatalogParser.Models
+namespace MicrosoftUpdateCatalogClient.Models
 {
     internal sealed class DownloadPageContentPostObject
     {

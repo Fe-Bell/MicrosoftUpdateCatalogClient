@@ -9,12 +9,12 @@ using System.IO;
 using System.Web;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using Poushec.UpdateCatalogParser.Models;
-using Poushec.UpdateCatalogParser.Exceptions;
-using Poushec.UpdateCatalogParser.Enums;
-using Poushec.UpdateCatalogParser.Serialization;
+using MicrosoftUpdateCatalogClient.Models;
+using MicrosoftUpdateCatalogClient.Exceptions;
+using MicrosoftUpdateCatalogClient.Enums;
+using MicrosoftUpdateCatalogClient.Serialization;
 
-namespace Poushec.UpdateCatalogParser
+namespace MicrosoftUpdateCatalogClient
 {
     /// <summary>
     /// Class that handles all communications with catalog.update.microsoft.com

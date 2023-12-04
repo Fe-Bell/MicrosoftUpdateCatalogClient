@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Poushec.UpdateCatalogParser.Models
+namespace MicrosoftUpdateCatalogClient.Models
 {
     public class Driver :
         UpdateBase

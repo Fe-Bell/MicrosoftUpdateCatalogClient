@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
 
-namespace Poushec.UpdateCatalogParser.Models
+namespace MicrosoftUpdateCatalogClient.Models
 {
     /// <summary>
     /// Class represents the shared content of Update Details page of any Update type (classification)

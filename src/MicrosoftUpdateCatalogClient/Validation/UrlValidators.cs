@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace Poushec.UpdateCatalogParser.Validation
+namespace MicrosoftUpdateCatalogClient.Validation
 {
     internal partial class UrlValidators
     {

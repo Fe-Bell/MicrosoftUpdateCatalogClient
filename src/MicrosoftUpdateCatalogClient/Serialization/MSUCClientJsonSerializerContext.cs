@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Poushec.UpdateCatalogParser.Serialization
+namespace MicrosoftUpdateCatalogClient.Serialization
 {
     /// <summary>
     /// This class represents a source generator for all serializable objects to be used with System.Text.Json.

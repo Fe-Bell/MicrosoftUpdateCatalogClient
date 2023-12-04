@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
 
-namespace Poushec.UpdateCatalogParser.Models
+namespace MicrosoftUpdateCatalogClient.Models
 {
     public class CatalogResponse
     {

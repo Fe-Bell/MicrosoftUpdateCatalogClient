@@ -1,4 +1,4 @@
-namespace Poushec.UpdateCatalogParser.Enums
+namespace MicrosoftUpdateCatalogClient.Enums
 {
     public enum SortBy
     {

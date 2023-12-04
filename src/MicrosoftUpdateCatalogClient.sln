@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34316.72
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Poushec.UpdateCatalogParser", "MicrosoftUpdateCatalogClient\Poushec.UpdateCatalogParser.csproj", "{015794E3-A32B-47E3-BEF8-9CBE75EE147E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MicrosoftUpdateCatalogClient", "MicrosoftUpdateCatalogClient\MicrosoftUpdateCatalogClient.csproj", "{015794E3-A32B-47E3-BEF8-9CBE75EE147E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,4 +1,4 @@
-namespace Poushec.UpdateCatalogParser.Exceptions;
+namespace MicrosoftUpdateCatalogClient.Exceptions;
 
 public class CatalogErrorException : System.Exception
 {
