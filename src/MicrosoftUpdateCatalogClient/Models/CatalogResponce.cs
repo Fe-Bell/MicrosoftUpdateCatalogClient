@@ -17,7 +17,7 @@ namespace Poushec.UpdateCatalogParser.Models
         internal string ViewStateGenerator { get; set; } = null;
 
         [JsonConstructor]
-        internal CatalogResponse()
+        public CatalogResponse()
         {
 
         }

@@ -66,7 +66,7 @@ namespace Poushec.UpdateCatalogParser.Models
 
         public string Size { get; set; } = null;
 
-        public int SizeInBytes { get; set; } = default;
+        public long SizeInBytes { get; set; } = default;
 
         public IEnumerable<string> SupportedLanguages { get; set; } = Enumerable.Empty<string>();
 

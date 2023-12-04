@@ -13,7 +13,7 @@ namespace Poushec.UpdateCatalogParser.Models
 
         public string Size { get; set; } = null;
 
-        public int SizeInBytes { get; set; } = default;
+        public long SizeInBytes { get; set; } = default;
 
         public string Title { get; set; } = null;
 
@@ -22,7 +22,7 @@ namespace Poushec.UpdateCatalogParser.Models
         public string Version { get; set; } = null;
 
         [JsonConstructor]
-        internal CatalogSearchResult()
+        public CatalogSearchResult()
         {
             
         }

@@ -61,7 +61,7 @@ namespace Poushec.UpdateCatalogParser
             obj.LastUpdated = catalogSearchResult.LastUpdated;
             obj.Size = catalogSearchResult.Size;
             obj.SizeInBytes = catalogSearchResult.SizeInBytes;
-            obj.Products = catalogSearchResult.Products.Trim().Split(",").ToArray();
+            obj.Products = catalogSearchResult.Products.Trim().Split(",");
 
             //ParseCommonDetails(_detailsPage, obj);
             ParseDownloadLinks(downloadPageContent, obj);
@@ -189,13 +189,9 @@ namespace Poushec.UpdateCatalogParser
 
             HtmlNodeCollection searchResultsRows = table.SelectNodes("tr");
 
-            List<CatalogSearchResult> searchResults = new();
-
-            foreach (HtmlNode resultsRow in searchResultsRows.Skip(1)) // First row is always a headerRow 
-            {
-                CatalogSearchResult catalogSearchResult = ParseCatalogSearchResultFromResultsTableRow(resultsRow);
-                searchResults.Add(catalogSearchResult);
-            }
+            IEnumerable<CatalogSearchResult> searchResults = searchResultsRows
+                .Skip(1) //First row is always a headerRow 
+                .Select(ParseCatalogSearchResultFromResultsTableRow);
 
             return new CatalogResponse()
             {
@@ -214,25 +210,16 @@ namespace Poushec.UpdateCatalogParser
         {
             HtmlNodeCollection rowCells = resultsRow.SelectNodes("td");
 
-            string title = rowCells[1].InnerText.Trim();
-            string products = rowCells[2].InnerText.Trim();
-            string classification = rowCells[3].InnerText.Trim();
-            DateOnly lastUpdated = DateOnly.Parse(rowCells[4].InnerText.Trim());
-            string version = rowCells[5].InnerText.Trim();
-            string size = rowCells[6].SelectNodes("span")[0].InnerText;
-            int sizeInBytes = int.Parse(rowCells[6].SelectNodes("span")[1].InnerHtml);
-            string updateID = rowCells[7].SelectNodes("input")[0].Id;
-
             return new CatalogSearchResult()
             {
-                Title = title,
-                Products = products,
-                Classification = classification,
-                LastUpdated = lastUpdated,
-                Version = version,
-                Size = size,
-                SizeInBytes = sizeInBytes,
-                UpdateID = updateID
+                Title = rowCells[1].InnerText.Trim(),
+                Products = rowCells[2].InnerText.Trim(),
+                Classification = rowCells[3].InnerText.Trim(),
+                LastUpdated = DateOnly.Parse(rowCells[4].InnerText.Trim()),
+                Version = rowCells[5].InnerText.Trim(),
+                Size = rowCells[6].SelectNodes("span")[0].InnerText,
+                SizeInBytes = long.Parse(rowCells[6].SelectNodes("span")[1].InnerHtml),
+                UpdateID = rowCells[7].SelectNodes("input")[0].Id
             };
         }
 
