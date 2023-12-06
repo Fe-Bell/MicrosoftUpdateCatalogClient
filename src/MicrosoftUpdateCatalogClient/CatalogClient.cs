@@ -702,6 +702,8 @@ namespace MicrosoftUpdateCatalogClient
                 if (progress != null)
                 {
                     using ProgressMessageHandler handler = new();
+                    progress.TotalSize = update.SizeInBytes;
+                    handler.HttpReceiveProgress += (se, ev) => progress?.Report(ev.BytesTransferred);
                     httpClient = new HttpClient(handler);
                 }
                 else
@@ -715,9 +717,13 @@ namespace MicrosoftUpdateCatalogClient
                 response.EnsureSuccessStatusCode();
 
                 using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+
                 string path = Path.Combine(destination.FullName, Path.GetFileName(link.LocalPath));
+                if (File.Exists(path))
+                    File.Delete(path);
+
                 using FileStream fs = File.Create(path);
-                await stream.CopyToAsync(destination: fs, progress: progress, cancellationToken: cancellationToken);
+                await stream.CopyToAsync(fs, cancellationToken);
                 return new DownloadResult(new FileInfo(path));
             }
             catch
