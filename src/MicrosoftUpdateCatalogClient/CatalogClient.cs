@@ -1,18 +1,22 @@
+using HtmlAgilityPack;
+using MicrosoftUpdateCatalogClient.Exceptions;
+using MicrosoftUpdateCatalogClient.Extensions;
+using MicrosoftUpdateCatalogClient.Enums;
+using MicrosoftUpdateCatalogClient.Models;
+using MicrosoftUpdateCatalogClient.Progress;
+using MicrosoftUpdateCatalogClient.Result;
+using MicrosoftUpdateCatalogClient.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Net.Http;
-using HtmlAgilityPack;
 using System.Linq;
 using System.Threading;
 using System.IO;
 using System.Web;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using MicrosoftUpdateCatalogClient.Models;
-using MicrosoftUpdateCatalogClient.Exceptions;
-using MicrosoftUpdateCatalogClient.Enums;
-using MicrosoftUpdateCatalogClient.Serialization;
+using System.Net.Http.Handlers;
 
 namespace MicrosoftUpdateCatalogClient
 {
@@ -571,7 +575,7 @@ namespace MicrosoftUpdateCatalogClient
         /// <summary>
         /// Sends search query to catalog.update.microsoft.com
         /// </summary>
-        /// <param name="Query">Search Query</param>
+        /// <param name="query">Search Query</param>
         /// <param name="ignoreDuplicates">
         /// (Optional)
         /// TRUE - founded updates that have the same Title and SizeInBytes
@@ -587,14 +591,14 @@ namespace MicrosoftUpdateCatalogClient
         /// <param name="sortDirection">Sorting direction. Ascending or Descending</param>
         /// <returns>List of objects derived from UpdateBase class (Update or Driver)</returns>
         public async Task<IEnumerable<CatalogSearchResult>> SendSearchQueryAsync(
-            string Query, 
+            string query, 
             bool ignoreDuplicates = true, 
             SortBy sortBy = SortBy.None, 
             SortDirection sortDirection = SortDirection.Descending,
             CancellationToken cancellationToken = default)
         {
             const string catalogBaseUrl = "https://www.catalog.update.microsoft.com/Search.aspx";
-            string searchQueryUrl = $"{catalogBaseUrl}?q={HttpUtility.UrlEncode(Query)}"; 
+            string searchQueryUrl = $"{catalogBaseUrl}?q={HttpUtility.UrlEncode(query)}"; 
             
             CatalogResponse lastCatalogResponse = null;
             byte pageReloadAttemptsLeft = PageReloadAttempts;
@@ -631,12 +635,12 @@ namespace MicrosoftUpdateCatalogClient
             if (sortBy is not SortBy.None)
             {
                 // This will sort results in the ascending order
-                lastCatalogResponse = await SortSearchResults(Query, lastCatalogResponse, sortBy, cancellationToken);
+                lastCatalogResponse = await SortSearchResults(query, lastCatalogResponse, sortBy, cancellationToken);
             
                 if (sortDirection is SortDirection.Descending)
                 {
                     // The only way to sort results in the descending order is to send the same request again 
-                    lastCatalogResponse = await SortSearchResults(Query, lastCatalogResponse, sortBy, cancellationToken);
+                    lastCatalogResponse = await SortSearchResults(query, lastCatalogResponse, sortBy, cancellationToken);
                 }
             }
 
@@ -678,5 +682,52 @@ namespace MicrosoftUpdateCatalogClient
             return lastCatalogResponse.SearchResults;
         }
        
+        public static async Task<DownloadResult> DownloadAsync(UpdateBase update, DirectoryInfo destination = null, ByteCountProgress progress = null, CancellationToken cancellationToken = default)
+        {
+            if (update == null)
+                throw new ArgumentNullException(nameof(update));
+
+            string linkStr = update.DownloadLinks.FirstOrDefault();
+            if (string.IsNullOrEmpty(linkStr))
+                throw new NullReferenceException("Update has no download links!");
+
+            HttpClient httpClient = null;
+            try
+            {
+                destination ??= new DirectoryInfo(Path.GetTempPath());
+
+                if (!destination.Exists)
+                    destination.Create();
+
+                if (progress != null)
+                {
+                    using ProgressMessageHandler handler = new();
+                    httpClient = new HttpClient(handler);
+                }
+                else
+                {
+                    httpClient = new HttpClient();
+                }
+
+                Uri link = new(update.DownloadLinks.FirstOrDefault());
+
+                using HttpResponseMessage response = await httpClient.GetAsync(link, cancellationToken);
+                response.EnsureSuccessStatusCode();
+
+                using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+                string path = Path.Combine(destination.FullName, Path.GetFileName(link.LocalPath));
+                using FileStream fs = File.Create(path);
+                await stream.CopyToAsync(destination: fs, progress: progress, cancellationToken: cancellationToken);
+                return new DownloadResult(new FileInfo(path));
+            }
+            catch
+            {
+                throw;
+            }
+            finally
+            {
+                httpClient?.Dispose();
+            }
+        }
     }
 }
