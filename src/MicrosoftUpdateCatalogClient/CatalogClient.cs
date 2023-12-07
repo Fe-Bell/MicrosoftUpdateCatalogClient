@@ -25,7 +25,7 @@ namespace MicrosoftUpdateCatalogClient
     /// </summary>
     public class CatalogClient
     {
-        private static readonly Uri BaseUrl = new("https://www.catalog.update.microsoft.com");
+        private static readonly Uri BASE_URI = new("https://www.catalog.update.microsoft.com");
 
         private static async Task<CatalogEntry> CreateUpdateObjectAsync(CatalogSearchResult catalogSearchResult, byte pageReloadAttempts = 3, CancellationToken cancellationToken = default)
         {
@@ -98,7 +98,7 @@ namespace MicrosoftUpdateCatalogClient
             {
                 using HttpClient httpClient = new()
                 {
-                    BaseAddress = BaseUrl
+                    BaseAddress = BASE_URI
                 };
 
                 using HttpResponseMessage response = await httpClient.GetAsync($"ScopedViewInline.aspx?updateid={updateId}", cancellationToken);
@@ -138,7 +138,7 @@ namespace MicrosoftUpdateCatalogClient
         {
             using HttpClient httpClient = new()
             {
-                BaseAddress = BaseUrl
+                BaseAddress = BASE_URI
             };
 
             using HttpRequestMessage request = new(HttpMethod.Post, "DownloadDialog.aspx");
@@ -382,50 +382,14 @@ namespace MicrosoftUpdateCatalogClient
 
             return hwIds;
         }
-     
-        /// <summary>
-        /// Loads and parses the next page of the search results. If this method is called 
-        /// on a final page - CatalogNoResultsException will be thrown
-        /// </summary>
-        /// <returns>CatalogResponse object representing search query results from the next page</returns>
-        private static async Task<CatalogResponse> ParseNextCatalogResponseAsync(CatalogResponse lastCatalogResponse, CancellationToken cancellationToken = default)
-        {
-            if (lastCatalogResponse.IsFinalPage)
-                throw new CatalogNoResultsException("No more search results available. This is a final page.");
-
-            Dictionary<string, string> formData = new()
-            {
-                { "__EVENTTARGET",          "ctl00$catalogBody$nextPageLinkText" },
-                { "__EVENTARGUMENT",        lastCatalogResponse.EventArgument },
-                { "__VIEWSTATE",            lastCatalogResponse.ViewState },
-                { "__VIEWSTATEGENERATOR",   lastCatalogResponse.ViewStateGenerator },
-                { "__EVENTVALIDATION",      lastCatalogResponse.EventValidation }
-            };
-
-            using FormUrlEncodedContent requestContent = new(formData);
-
-            using HttpClient httpClient = new()
-            {
-                BaseAddress = BaseUrl
-            };
-            using HttpResponseMessage response = await httpClient.PostAsync(lastCatalogResponse.SearchQueryUri, requestContent, cancellationToken);
-            response.EnsureSuccessStatusCode();
-
-            HtmlDocument htmlDoc = new();
-
-            using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            htmlDoc.Load(stream);
-
-            return ParseCatalogResponseFromHtmlPage(htmlDoc, lastCatalogResponse.SearchQueryUri);
-        }
 
         private static async Task<CatalogResponse> SendSearchQueryAsync(string requestUri, CancellationToken cancellationToken = default)
         {
             using HttpClient httpClient = new()
             {
-                BaseAddress = BaseUrl
+                BaseAddress = BASE_URI
             };
-            
+
             using HttpResponseMessage response = await httpClient.GetAsync($"Search.aspx?q={HttpUtility.UrlEncode(requestUri)}", cancellationToken);
             response.EnsureSuccessStatusCode();
 
@@ -468,7 +432,7 @@ namespace MicrosoftUpdateCatalogClient
 
             using HttpClient httpClient = new()
             {
-                BaseAddress = BaseUrl
+                BaseAddress = BASE_URI
             };
 
             using HttpResponseMessage response = await httpClient.PostAsync(unsortedResponse.SearchQueryUri, requestContent, cancellationToken);
@@ -483,75 +447,113 @@ namespace MicrosoftUpdateCatalogClient
             return ParseCatalogResponseFromHtmlPage(htmlDoc, unsortedResponse.SearchQueryUri);
         }
 
-        public byte PageReloadAttempts { get; set; } = 3;
+        public ClientConfiguration Configuration { get; set; } = null;
 
-        public CatalogClient()
+        public CatalogClient(ClientConfiguration configuration = null)
         {
-           
+            Configuration = configuration ?? new();
+        }
+
+        public static async Task<DownloadResult> DownloadAsync(CatalogEntry entry, DirectoryInfo destination = null, ByteCountProgress progress = null, CancellationToken cancellationToken = default)
+        {
+            if (entry == null)
+                throw new ArgumentNullException(nameof(entry));
+
+            if (!entry.DownloadLinks.Any())
+                throw new NullReferenceException("Update has no download links!");
+
+            HttpClient httpClient = null;
+            try
+            {
+                destination ??= new DirectoryInfo(Path.GetTempPath());
+
+                if (!destination.Exists)
+                    destination.Create();
+
+                if (progress != null)
+                {
+                    using ProgressMessageHandler handler = new();
+                    progress.TotalSize = entry.SizeInBytes;
+                    handler.HttpReceiveProgress += (se, ev) => progress?.Report(ev.BytesTransferred);
+                    httpClient = new HttpClient(handler);
+                }
+                else
+                {
+                    httpClient = new HttpClient();
+                }
+                httpClient.BaseAddress = BASE_URI;
+
+                List<FileSystemInfo> lst = new();
+                foreach (string linkStr in entry.DownloadLinks)
+                {
+                    Uri link = new(linkStr);
+
+                    using HttpResponseMessage response = await httpClient.GetAsync(link, cancellationToken);
+                    response.EnsureSuccessStatusCode();
+
+                    using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+
+                    string path = Path.Combine(destination.FullName, Path.GetFileName(link.LocalPath));
+                    if (File.Exists(path))
+                        File.Delete(path);
+
+                    using FileStream fs = File.Create(path);
+                    await stream.CopyToAsync(fs, cancellationToken);
+
+                    lst.Add(new FileInfo(path));
+                }
+
+                return new(lst.ToArray());
+            }
+            catch
+            {
+                throw;
+            }
+            finally
+            {
+                httpClient?.Dispose();
+            }
         }
 
         /// <summary>
-        /// Sends search query to catalog.update.microsoft.com and returns a CatalogResponse
-        /// object representing the first results page. Other pages can be requested later by
-        /// calling CatalogResponse.ParseNextPageAsync method
+        /// Loads and parses the next page of the search results. If this method is called 
+        /// on a final page - CatalogNoResultsException will be thrown
         /// </summary>
-        /// <param name="query">Search Query</param>
-        /// <param name="sortBy">
-        /// (Optional)
-        /// Use this argument if you want Catalog to sort search results.
-        /// Available values are the same as in catalog: Title, Products, Classification, LastUpdated, Version, Size 
-        /// By default results are sorted by LastUpdated
-        /// </param>
-        /// <param name="sortDirection">Sorting direction. Ascending or Descending</param>
-        /// <returns>CatalogResponse object representing the first results page</returns>
-        public async Task<CatalogResponse> GetFirstPageFromSearchQueryAsync(
-            string query,
-            SortBy sortBy = SortBy.None,
-            SortDirection sortDirection = SortDirection.Descending,
-            CancellationToken cancellationToken = default)
+        /// <returns>CatalogResponse object representing search query results from the next page</returns>
+        public static async Task<CatalogResponse> ParseNextCatalogResponseAsync(CatalogResponse lastCatalogResponse, CancellationToken cancellationToken = default)
         {
-            CatalogResponse catalogFirstPage = null;
-            byte pageReloadAttemptsLeft = PageReloadAttempts;
+            if (lastCatalogResponse == null)
+                throw new ArgumentNullException(nameof(lastCatalogResponse));
 
-            while (catalogFirstPage is null)
+            if (lastCatalogResponse.IsFinalPage)
+                throw new CatalogNoResultsException("No more search results available. This is a final page.");
+
+            Dictionary<string, string> formData = new()
             {
-                if (pageReloadAttemptsLeft == 0)
-                    throw new CatalogErrorException($"Search results page was not successfully loaded after {PageReloadAttempts} attempts to refresh it");
+                { "__EVENTTARGET",          "ctl00$catalogBody$nextPageLinkText" },
+                { "__EVENTARGUMENT",        lastCatalogResponse.EventArgument },
+                { "__VIEWSTATE",            lastCatalogResponse.ViewState },
+                { "__VIEWSTATEGENERATOR",   lastCatalogResponse.ViewStateGenerator },
+                { "__EVENTVALIDATION",      lastCatalogResponse.EventValidation }
+            };
 
-                try
-                {
-                    catalogFirstPage = await SendSearchQueryAsync(query, cancellationToken);
-                }
-                catch (TaskCanceledException)
-                {
-                    // Request timed out - it happens. We'll try to reload a page
-                    pageReloadAttemptsLeft--;
-                    continue;
-                }
-                catch (CatalogFailedToLoadSearchResultsPageException)
-                {
-                    // Sometimes catalog responses with an empty search results table.
-                    // Refreshing a page usually helps, so that's what we'll try to do
-                    pageReloadAttemptsLeft--;
-                    continue;
-                }
-            }
+            using FormUrlEncodedContent requestContent = new(formData);
 
-            if (sortBy is not SortBy.None)
+            using HttpClient httpClient = new()
             {
-                // This will sort results in the ascending order
-                catalogFirstPage = await SortSearchResults(query, catalogFirstPage, sortBy, cancellationToken);
+                BaseAddress = BASE_URI
+            };
+            using HttpResponseMessage response = await httpClient.PostAsync(lastCatalogResponse.SearchQueryUri, requestContent, cancellationToken);
+            response.EnsureSuccessStatusCode();
 
-                if (sortDirection is SortDirection.Descending)
-                {
-                    // The only way to sort results in the descending order is to send the same request again 
-                    catalogFirstPage = await SortSearchResults(query, catalogFirstPage, sortBy, cancellationToken);
-                }
-            }
+            HtmlDocument htmlDoc = new();
 
-            return catalogFirstPage;
+            using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            htmlDoc.Load(stream);
+
+            return ParseCatalogResponseFromHtmlPage(htmlDoc, lastCatalogResponse.SearchQueryUri);
         }
-
+        
         /// <summary>
         /// Collect update details from Update Details Page and Download Page 
         /// </summary>
@@ -562,12 +564,12 @@ namespace MicrosoftUpdateCatalogClient
         /// <exception cref="CatalogErrorException">Thrown when catalog response with an error page with unknown error code</exception>
         /// <exception cref="RequestToCatalogTimedOutException">Thrown when request to catalog was canceled due to timeout</exception>
         /// <exception cref="ParseHtmlPageException">Thrown when function was not able to parse ScopedView HTML page</exception>
-        public async Task<CatalogEntry> GetUpdateDetailsAsync(CatalogSearchResult searchResult, bool throwOnError = true, CancellationToken cancellationToken = default)
+        public async Task<CatalogEntry> GetResultDetailsAsync(CatalogSearchResult searchResult, bool throwOnError = true, CancellationToken cancellationToken = default)
         {
             CatalogEntry updateBase = null;
             try
             {
-                updateBase = await CreateUpdateObjectAsync(searchResult, PageReloadAttempts, cancellationToken);
+                updateBase = await CreateUpdateObjectAsync(searchResult, Configuration.PageReloadAttempts, cancellationToken);
             }
             catch
             {
@@ -600,20 +602,15 @@ namespace MicrosoftUpdateCatalogClient
         /// </param>
         /// <param name="sortDirection">Sorting direction. Ascending or Descending</param>
         /// <returns>List of objects derived from UpdateBase class (Update or Driver)</returns>
-        public async Task<IEnumerable<CatalogSearchResult>> SendSearchQueryAsync(
-            string query, 
-            bool ignoreDuplicates = true, 
-            SortBy sortBy = SortBy.None, 
-            SortDirection sortDirection = SortDirection.Descending,
-            CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<CatalogSearchResult>> SearchAsync(string query, bool ignoreDuplicates = true, QueryOptions options = default, CancellationToken cancellationToken = default)
         {
             CatalogResponse lastCatalogResponse = null;
-            byte pageReloadAttemptsLeft = PageReloadAttempts;
-            
+            byte pageReloadAttemptsLeft = Configuration.PageReloadAttempts;
+
             while (lastCatalogResponse is null)
             {
                 if (pageReloadAttemptsLeft == 0)
-                    throw new CatalogErrorException($"Search results page was not successfully loaded after {PageReloadAttempts} attempts to refresh it");
+                    throw new CatalogErrorException($"Search results page was not successfully loaded after {Configuration.PageReloadAttempts} attempts to refresh it");
 
                 try
                 {
@@ -639,24 +636,24 @@ namespace MicrosoftUpdateCatalogClient
                 }
             }
 
-            if (sortBy is not SortBy.None)
+            if (options.SortOrder is not SortBy.None)
             {
                 // This will sort results in the ascending order
-                lastCatalogResponse = await SortSearchResults(query, lastCatalogResponse, sortBy, cancellationToken);
-            
-                if (sortDirection is SortDirection.Descending)
+                lastCatalogResponse = await SortSearchResults(query, lastCatalogResponse, options.SortOrder, cancellationToken);
+
+                if (options.SortDirection is SortDirection.Descending)
                 {
                     // The only way to sort results in the descending order is to send the same request again 
-                    lastCatalogResponse = await SortSearchResults(query, lastCatalogResponse, sortBy, cancellationToken);
+                    lastCatalogResponse = await SortSearchResults(query, lastCatalogResponse, options.SortOrder, cancellationToken);
                 }
             }
 
-            pageReloadAttemptsLeft = PageReloadAttempts;
-            
+            pageReloadAttemptsLeft = Configuration.PageReloadAttempts;
+
             while (!lastCatalogResponse.IsFinalPage)
             {
                 if (pageReloadAttemptsLeft == 0)
-                    throw new CatalogErrorException($"One of the search result pages was not successfully loaded after {PageReloadAttempts} attempts to refresh it");
+                    throw new CatalogErrorException($"One of the search result pages was not successfully loaded after {Configuration.PageReloadAttempts} attempts to refresh it");
 
                 try
                 {
@@ -666,9 +663,9 @@ namespace MicrosoftUpdateCatalogClient
                     lastCatalogResponse.SearchResults = lst;
                     lastCatalogResponse.ResultsCount = lst.Count;
 
-                    pageReloadAttemptsLeft = PageReloadAttempts; // Reset page refresh attempts count
+                    pageReloadAttemptsLeft = Configuration.PageReloadAttempts; // Reset page refresh attempts count
                 }
-                catch (TaskCanceledException) 
+                catch (TaskCanceledException)
                 {
                     // Request timed out - it happens
                     pageReloadAttemptsLeft--;
@@ -688,66 +685,63 @@ namespace MicrosoftUpdateCatalogClient
 
             return lastCatalogResponse.SearchResults;
         }
-       
-        public static async Task<DownloadResult> DownloadAsync(CatalogEntry update, DirectoryInfo destination = null, ByteCountProgress progress = null, CancellationToken cancellationToken = default)
+
+        /// <summary>
+        /// Sends search query to catalog.update.microsoft.com and returns a CatalogResponse
+        /// object representing the first results page. Other pages can be requested later by
+        /// calling CatalogResponse.ParseNextPageAsync method
+        /// </summary>
+        /// <param name="query">Search Query</param>
+        /// <param name="sortBy">
+        /// (Optional)
+        /// Use this argument if you want Catalog to sort search results.
+        /// Available values are the same as in catalog: Title, Products, Classification, LastUpdated, Version, Size 
+        /// By default results are sorted by LastUpdated
+        /// </param>
+        /// <param name="sortDirection">Sorting direction. Ascending or Descending</param>
+        /// <returns>CatalogResponse object representing the first results page</returns>
+        public async Task<CatalogResponse> SearchFirstPageAsync(string query, QueryOptions options = default, CancellationToken cancellationToken = default)
         {
-            if (update == null)
-                throw new ArgumentNullException(nameof(update));
+            CatalogResponse catalogFirstPage = null;
+            byte pageReloadAttemptsLeft = Configuration.PageReloadAttempts;
 
-            if (!update.DownloadLinks.Any())
-                throw new NullReferenceException("Update has no download links!");
-
-            HttpClient httpClient = null;
-            try
+            while (catalogFirstPage is null)
             {
-                destination ??= new DirectoryInfo(Path.GetTempPath());
+                if (pageReloadAttemptsLeft == 0)
+                    throw new CatalogErrorException($"Search results page was not successfully loaded after {Configuration.PageReloadAttempts} attempts to refresh it");
 
-                if (!destination.Exists)
-                    destination.Create();
-
-                if (progress != null)
+                try
                 {
-                    using ProgressMessageHandler handler = new();
-                    progress.TotalSize = update.SizeInBytes;
-                    handler.HttpReceiveProgress += (se, ev) => progress?.Report(ev.BytesTransferred);
-                    httpClient = new HttpClient(handler);
+                    catalogFirstPage = await SendSearchQueryAsync(query, cancellationToken);
                 }
-                else
+                catch (TaskCanceledException)
                 {
-                    httpClient = new HttpClient();
+                    // Request timed out - it happens. We'll try to reload a page
+                    pageReloadAttemptsLeft--;
+                    continue;
                 }
-                httpClient.BaseAddress = BaseUrl;
-
-                List<FileSystemInfo> lst = new();
-                foreach(string linkStr in update.DownloadLinks)
+                catch (CatalogFailedToLoadSearchResultsPageException)
                 {
-                    Uri link = new(linkStr);
-
-                    using HttpResponseMessage response = await httpClient.GetAsync(link, cancellationToken);
-                    response.EnsureSuccessStatusCode();
-
-                    using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-
-                    string path = Path.Combine(destination.FullName, Path.GetFileName(link.LocalPath));
-                    if (File.Exists(path))
-                        File.Delete(path);
-
-                    using FileStream fs = File.Create(path);
-                    await stream.CopyToAsync(fs, cancellationToken);
-
-                    lst.Add(new FileInfo(path));
+                    // Sometimes catalog responses with an empty search results table.
+                    // Refreshing a page usually helps, so that's what we'll try to do
+                    pageReloadAttemptsLeft--;
+                    continue;
                 }
-
-                return new(lst.ToArray());
             }
-            catch
+
+            if (options.SortOrder is not SortBy.None)
             {
-                throw;
+                // This will sort results in the ascending order
+                catalogFirstPage = await SortSearchResults(query, catalogFirstPage, options.SortOrder, cancellationToken);
+
+                if (options.SortDirection is SortDirection.Descending)
+                {
+                    // The only way to sort results in the descending order is to send the same request again 
+                    catalogFirstPage = await SortSearchResults(query, catalogFirstPage, options.SortOrder, cancellationToken);
+                }
             }
-            finally
-            {
-                httpClient?.Dispose();
-            }
+
+            return catalogFirstPage;
         }
     }
 }
