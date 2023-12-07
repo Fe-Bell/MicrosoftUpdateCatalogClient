@@ -5,7 +5,7 @@ using System.Linq;
 namespace MicrosoftUpdateCatalogClient.Models
 {
     public class Driver :
-        UpdateBase
+        CatalogEntry
     {
         public string Company { get; set; } = null;
 

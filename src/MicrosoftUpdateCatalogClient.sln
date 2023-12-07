@@ -5,6 +5,8 @@ VisualStudioVersion = 17.8.34316.72
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MicrosoftUpdateCatalogClient", "MicrosoftUpdateCatalogClient\MicrosoftUpdateCatalogClient.csproj", "{015794E3-A32B-47E3-BEF8-9CBE75EE147E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MicrosoftUpdateCatalogClient.Tests", "MicrosoftUpdateCatalogClient.Tests\MicrosoftUpdateCatalogClient.Tests.csproj", "{12B42793-AC2C-40F2-942E-B96E6531A096}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{015794E3-A32B-47E3-BEF8-9CBE75EE147E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{015794E3-A32B-47E3-BEF8-9CBE75EE147E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{015794E3-A32B-47E3-BEF8-9CBE75EE147E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{12B42793-AC2C-40F2-942E-B96E6531A096}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{12B42793-AC2C-40F2-942E-B96E6531A096}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{12B42793-AC2C-40F2-942E-B96E6531A096}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{12B42793-AC2C-40F2-942E-B96E6531A096}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

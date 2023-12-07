@@ -4,7 +4,7 @@ using System.Linq;
 namespace MicrosoftUpdateCatalogClient.Models
 {
     public class Update : 
-        UpdateBase
+        CatalogEntry
     {
         public string KBArticleNumbers { get; set; } = null;
 

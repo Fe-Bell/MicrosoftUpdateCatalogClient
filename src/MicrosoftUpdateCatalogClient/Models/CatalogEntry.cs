@@ -10,34 +10,34 @@ namespace MicrosoftUpdateCatalogClient.Models
     /// </summary>
     [JsonDerivedType(typeof(Driver), nameof(Driver))]
     [JsonDerivedType(typeof(Update), nameof(Update))]
-    public class UpdateBase
+    public class CatalogEntry
     {
-        protected UpdateBase()
+        protected CatalogEntry()
         {
 
         }
 
-        protected UpdateBase(UpdateBase updateBase)
+        protected CatalogEntry(CatalogEntry entry)
         {
-            Title = updateBase.Title;
-            UpdateID = updateBase.UpdateID;
-            Products = updateBase.Products;
-            Classification = updateBase.Classification;
-            LastUpdated = updateBase.LastUpdated;
-            Size = updateBase.Size;
-            SizeInBytes = updateBase.SizeInBytes;
-            DownloadLinks = updateBase.DownloadLinks;
-            Description = updateBase.Description;
-            Architectures = updateBase.Architectures;
-            SupportedLanguages = updateBase.SupportedLanguages;
-            MoreInformation = updateBase.MoreInformation;
-            SupportUrl = updateBase.SupportUrl;
-            RestartBehavior = updateBase.RestartBehavior;
-            MayRequestUserInput = updateBase.MayRequestUserInput;
-            MustBeInstalledExclusively = updateBase.MustBeInstalledExclusively;
-            RequiresNetworkConnectivity = updateBase.RequiresNetworkConnectivity;
-            UninstallNotes = updateBase.UninstallNotes;
-            UninstallSteps = updateBase.UninstallSteps;
+            Title = entry.Title;
+            UpdateID = entry.UpdateID;
+            Products = entry.Products;
+            Classification = entry.Classification;
+            LastUpdated = entry.LastUpdated;
+            Size = entry.Size;
+            SizeInBytes = entry.SizeInBytes;
+            DownloadLinks = entry.DownloadLinks;
+            Description = entry.Description;
+            Architectures = entry.Architectures;
+            SupportedLanguages = entry.SupportedLanguages;
+            MoreInformation = entry.MoreInformation;
+            SupportUrl = entry.SupportUrl;
+            RestartBehavior = entry.RestartBehavior;
+            MayRequestUserInput = entry.MayRequestUserInput;
+            MustBeInstalledExclusively = entry.MustBeInstalledExclusively;
+            RequiresNetworkConnectivity = entry.RequiresNetworkConnectivity;
+            UninstallNotes = entry.UninstallNotes;
+            UninstallSteps = entry.UninstallSteps;
         }
 
         public IEnumerable<string> Architectures { get; set; } = Enumerable.Empty<string>();

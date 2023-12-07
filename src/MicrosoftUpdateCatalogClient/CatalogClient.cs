@@ -1,6 +1,5 @@
 using HtmlAgilityPack;
 using MicrosoftUpdateCatalogClient.Exceptions;
-using MicrosoftUpdateCatalogClient.Extensions;
 using MicrosoftUpdateCatalogClient.Enums;
 using MicrosoftUpdateCatalogClient.Models;
 using MicrosoftUpdateCatalogClient.Progress;
@@ -17,6 +16,7 @@ using System.Web;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Net.Http.Handlers;
+using System.Globalization;
 
 namespace MicrosoftUpdateCatalogClient
 {
@@ -25,12 +25,14 @@ namespace MicrosoftUpdateCatalogClient
     /// </summary>
     public class CatalogClient
     {
-        private static async Task<UpdateBase> CreateUpdateObjectAsync(CatalogSearchResult catalogSearchResult, byte pageReloadAttempts = 3, CancellationToken cancellationToken = default)
+        private static readonly Uri BaseUrl = new("https://www.catalog.update.microsoft.com");
+
+        private static async Task<CatalogEntry> CreateUpdateObjectAsync(CatalogSearchResult catalogSearchResult, byte pageReloadAttempts = 3, CancellationToken cancellationToken = default)
         {
             HtmlDocument _detailsPage = await GetDetailsPageAsync(catalogSearchResult.UpdateID, cancellationToken);
             string downloadPageContent = await GetDownloadPageContentAsync(catalogSearchResult.UpdateID, cancellationToken);
 
-            UpdateBase obj;
+            CatalogEntry obj;
             if (catalogSearchResult.Classification.Contains("Driver", StringComparison.OrdinalIgnoreCase))
             {
                 Driver driver = new();
@@ -91,14 +93,15 @@ namespace MicrosoftUpdateCatalogClient
         }
 
         private static async Task<HtmlDocument> GetDetailsPageAsync(string updateId, CancellationToken cancellationToken = default)
-        {
-            string requestUri = $"https://www.catalog.update.microsoft.com/ScopedViewInline.aspx?updateid={updateId}";
-
+        {      
             try
             {
-                using HttpClient httpClient = new();
+                using HttpClient httpClient = new()
+                {
+                    BaseAddress = BaseUrl
+                };
 
-                using HttpResponseMessage response = await httpClient.GetAsync(requestUri, cancellationToken);
+                using HttpResponseMessage response = await httpClient.GetAsync($"ScopedViewInline.aspx?updateid={updateId}", cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
                     throw new UnableToCollectUpdateDetailsException($"Catalog responded with {response.StatusCode} code");
@@ -133,11 +136,12 @@ namespace MicrosoftUpdateCatalogClient
 
         private static async Task<string> GetDownloadPageContentAsync(string updateId, CancellationToken cancellationToken = default)
         {
-            string requestUri = "https://www.catalog.update.microsoft.com/DownloadDialog.aspx";
+            using HttpClient httpClient = new()
+            {
+                BaseAddress = BaseUrl
+            };
 
-            using HttpClient httpClient = new();
-
-            using HttpRequestMessage request = new(HttpMethod.Post, requestUri);
+            using HttpRequestMessage request = new(HttpMethod.Post, "DownloadDialog.aspx");
 
             DownloadPageContentPostObject downloadPageContentPostObject = new()
             {
@@ -219,15 +223,15 @@ namespace MicrosoftUpdateCatalogClient
                 Title = rowCells[1].InnerText.Trim(),
                 Products = rowCells[2].InnerText.Trim(),
                 Classification = rowCells[3].InnerText.Trim(),
-                LastUpdated = DateOnly.Parse(rowCells[4].InnerText.Trim()),
+                LastUpdated = DateOnly.ParseExact(rowCells[4].InnerText.Trim(), "MM/dd/yyyy", CultureInfo.InvariantCulture),
                 Version = rowCells[5].InnerText.Trim(),
-                Size = rowCells[6].SelectNodes("span")[0].InnerText,
-                SizeInBytes = long.Parse(rowCells[6].SelectNodes("span")[1].InnerHtml),
-                UpdateID = rowCells[7].SelectNodes("input")[0].Id
+                Size = rowCells[6].SelectNodes("span")[0].InnerText.Trim(),
+                SizeInBytes = long.Parse(rowCells[6].SelectNodes("span")[1].InnerHtml.Trim()),
+                UpdateID = rowCells[7].SelectNodes("input")[0].Id.Trim()
             };
         }
 
-        private static void ParseCommonDetails(HtmlDocument detailsPage, UpdateBase updateBase)
+        private static void ParseCommonDetails(HtmlDocument detailsPage, CatalogEntry updateBase)
         {
             if (detailsPage is null)
                 throw new ParseHtmlPageException("_parseCommonDetails() failed. _detailsPage is null");
@@ -319,7 +323,7 @@ namespace MicrosoftUpdateCatalogClient
             }
         }
 
-        private static void ParseDownloadLinks(string downloadPageContent, UpdateBase updateBase)
+        private static void ParseDownloadLinks(string downloadPageContent, CatalogEntry updateBase)
         {
             if (updateBase == null)
                 ArgumentException.ThrowIfNullOrEmpty(nameof(updateBase));
@@ -400,7 +404,10 @@ namespace MicrosoftUpdateCatalogClient
 
             using FormUrlEncodedContent requestContent = new(formData);
 
-            using HttpClient httpClient = new();
+            using HttpClient httpClient = new()
+            {
+                BaseAddress = BaseUrl
+            };
             using HttpResponseMessage response = await httpClient.PostAsync(lastCatalogResponse.SearchQueryUri, requestContent, cancellationToken);
             response.EnsureSuccessStatusCode();
 
@@ -414,9 +421,12 @@ namespace MicrosoftUpdateCatalogClient
 
         private static async Task<CatalogResponse> SendSearchQueryAsync(string requestUri, CancellationToken cancellationToken = default)
         {
-            using HttpClient httpClient = new();
-
-            using HttpResponseMessage response = await httpClient.GetAsync(requestUri, cancellationToken);
+            using HttpClient httpClient = new()
+            {
+                BaseAddress = BaseUrl
+            };
+            
+            using HttpResponseMessage response = await httpClient.GetAsync($"Search.aspx?q={HttpUtility.UrlEncode(requestUri)}", cancellationToken);
             response.EnsureSuccessStatusCode();
 
             HtmlDocument htmlDoc = new();
@@ -456,7 +466,10 @@ namespace MicrosoftUpdateCatalogClient
 
             FormUrlEncodedContent requestContent = new(formData);
 
-            using HttpClient httpClient = new();
+            using HttpClient httpClient = new()
+            {
+                BaseAddress = BaseUrl
+            };
 
             using HttpResponseMessage response = await httpClient.PostAsync(unsortedResponse.SearchQueryUri, requestContent, cancellationToken);
             response.EnsureSuccessStatusCode();
@@ -497,9 +510,6 @@ namespace MicrosoftUpdateCatalogClient
             SortDirection sortDirection = SortDirection.Descending,
             CancellationToken cancellationToken = default)
         {
-            string catalogBaseUrl = "https://www.catalog.update.microsoft.com/Search.aspx";
-            string searchQueryUrl = $"{catalogBaseUrl}?q={HttpUtility.UrlEncode(query)}";
-
             CatalogResponse catalogFirstPage = null;
             byte pageReloadAttemptsLeft = PageReloadAttempts;
 
@@ -510,7 +520,7 @@ namespace MicrosoftUpdateCatalogClient
 
                 try
                 {
-                    catalogFirstPage = await SendSearchQueryAsync(searchQueryUrl, cancellationToken);
+                    catalogFirstPage = await SendSearchQueryAsync(query, cancellationToken);
                 }
                 catch (TaskCanceledException)
                 {
@@ -552,9 +562,9 @@ namespace MicrosoftUpdateCatalogClient
         /// <exception cref="CatalogErrorException">Thrown when catalog response with an error page with unknown error code</exception>
         /// <exception cref="RequestToCatalogTimedOutException">Thrown when request to catalog was canceled due to timeout</exception>
         /// <exception cref="ParseHtmlPageException">Thrown when function was not able to parse ScopedView HTML page</exception>
-        public async Task<UpdateBase> GetUpdateDetailsAsync(CatalogSearchResult searchResult, bool throwOnError = true, CancellationToken cancellationToken = default)
+        public async Task<CatalogEntry> GetUpdateDetailsAsync(CatalogSearchResult searchResult, bool throwOnError = true, CancellationToken cancellationToken = default)
         {
-            UpdateBase updateBase = null;
+            CatalogEntry updateBase = null;
             try
             {
                 updateBase = await CreateUpdateObjectAsync(searchResult, PageReloadAttempts, cancellationToken);
@@ -597,9 +607,6 @@ namespace MicrosoftUpdateCatalogClient
             SortDirection sortDirection = SortDirection.Descending,
             CancellationToken cancellationToken = default)
         {
-            const string catalogBaseUrl = "https://www.catalog.update.microsoft.com/Search.aspx";
-            string searchQueryUrl = $"{catalogBaseUrl}?q={HttpUtility.UrlEncode(query)}"; 
-            
             CatalogResponse lastCatalogResponse = null;
             byte pageReloadAttemptsLeft = PageReloadAttempts;
             
@@ -610,7 +617,7 @@ namespace MicrosoftUpdateCatalogClient
 
                 try
                 {
-                    lastCatalogResponse = await SendSearchQueryAsync(searchQueryUrl, cancellationToken);
+                    lastCatalogResponse = await SendSearchQueryAsync(query, cancellationToken);
                 }
                 catch (TaskCanceledException)
                 {
@@ -682,13 +689,12 @@ namespace MicrosoftUpdateCatalogClient
             return lastCatalogResponse.SearchResults;
         }
        
-        public static async Task<DownloadResult> DownloadAsync(UpdateBase update, DirectoryInfo destination = null, ByteCountProgress progress = null, CancellationToken cancellationToken = default)
+        public static async Task<DownloadResult> DownloadAsync(CatalogEntry update, DirectoryInfo destination = null, ByteCountProgress progress = null, CancellationToken cancellationToken = default)
         {
             if (update == null)
                 throw new ArgumentNullException(nameof(update));
 
-            string linkStr = update.DownloadLinks.FirstOrDefault();
-            if (string.IsNullOrEmpty(linkStr))
+            if (!update.DownloadLinks.Any())
                 throw new NullReferenceException("Update has no download links!");
 
             HttpClient httpClient = null;
@@ -710,21 +716,29 @@ namespace MicrosoftUpdateCatalogClient
                 {
                     httpClient = new HttpClient();
                 }
+                httpClient.BaseAddress = BaseUrl;
 
-                Uri link = new(update.DownloadLinks.FirstOrDefault());
+                List<FileSystemInfo> lst = new();
+                foreach(string linkStr in update.DownloadLinks)
+                {
+                    Uri link = new(linkStr);
 
-                using HttpResponseMessage response = await httpClient.GetAsync(link, cancellationToken);
-                response.EnsureSuccessStatusCode();
+                    using HttpResponseMessage response = await httpClient.GetAsync(link, cancellationToken);
+                    response.EnsureSuccessStatusCode();
 
-                using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+                    using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken);
 
-                string path = Path.Combine(destination.FullName, Path.GetFileName(link.LocalPath));
-                if (File.Exists(path))
-                    File.Delete(path);
+                    string path = Path.Combine(destination.FullName, Path.GetFileName(link.LocalPath));
+                    if (File.Exists(path))
+                        File.Delete(path);
 
-                using FileStream fs = File.Create(path);
-                await stream.CopyToAsync(fs, cancellationToken);
-                return new DownloadResult(new FileInfo(path));
+                    using FileStream fs = File.Create(path);
+                    await stream.CopyToAsync(fs, cancellationToken);
+
+                    lst.Add(new FileInfo(path));
+                }
+
+                return new(lst.ToArray());
             }
             catch
             {

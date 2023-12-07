@@ -1,18 +1,19 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 
 namespace MicrosoftUpdateCatalogClient.Result
 {
     public class DownloadResult :
-        IResult<FileSystemInfo>
+        IResult<IEnumerable<FileSystemInfo>>
     {
-        private readonly FileSystemInfo fileSystemInfo;
+        private readonly IEnumerable<FileSystemInfo> result;
 
-        public DownloadResult(FileSystemInfo fileSystemInfo)
+        public DownloadResult(params FileSystemInfo[] results)
         {
-            this.fileSystemInfo = fileSystemInfo;
+            result = results;
         }
 
-        public FileSystemInfo GetResult() 
-            => fileSystemInfo;
+        public IEnumerable<FileSystemInfo> GetResult() 
+            => result;
     }
 }
