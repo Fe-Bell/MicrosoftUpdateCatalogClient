@@ -7,5 +7,9 @@ namespace MicrosoftUpdateCatalog.Core.Contract
         SortBy GetSortOrder();
 
         SortDirection GetSortDirection();
+
+        int GetMaxResults();
+
+        bool ShouldIgnoreDuplicates();
     }
 }

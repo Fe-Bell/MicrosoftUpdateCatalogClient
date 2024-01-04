@@ -1,3 +1,4 @@
+using MicrosoftUpdateCatalog.Core.Contract;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +11,8 @@ namespace MicrosoftUpdateCatalogClient.Models
     /// </summary>
     [JsonDerivedType(typeof(Driver), nameof(Driver))]
     [JsonDerivedType(typeof(Update), nameof(Update))]
-    public class CatalogEntry
+    public class CatalogEntry :
+        ICatalogEntry
     {
         protected CatalogEntry()
         {
@@ -80,5 +82,17 @@ namespace MicrosoftUpdateCatalogClient.Models
         public string UninstallSteps { get; set; } = null;
 
         public string UpdateID { get; set; }
+
+        public IEnumerable<string> GetDownloadLinks()
+             => DownloadLinks;
+
+        public string GetId()
+            => UpdateID;
+
+        public string GetName()
+            => Title;
+
+        public DateOnly GetReleaseDate()
+            => LastUpdated;
     }
 }

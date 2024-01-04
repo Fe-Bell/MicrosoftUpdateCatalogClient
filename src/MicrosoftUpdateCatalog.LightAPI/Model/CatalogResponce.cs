@@ -1,10 +1,12 @@
+using MicrosoftUpdateCatalog.Core.Contract;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
 
 namespace MicrosoftUpdateCatalog.LightAPI.Model
 {
-    public class CatalogResponse
+    public class CatalogResponse :
+        ICatalogResponse
     {
         internal string EventArgument { get; set; } = null;
 
@@ -16,16 +18,25 @@ namespace MicrosoftUpdateCatalog.LightAPI.Model
 
         internal string ViewStateGenerator { get; set; } = null;
 
+        public bool IsFinalPage { get; internal set; } = true;
+
+        public IEnumerable<CatalogEntry> Results { get; internal set; } = Enumerable.Empty<CatalogEntry>();
+
+        public int ResultsCount { get; internal set; } = default;
+
         [JsonConstructor]
         public CatalogResponse()
         {
 
         }
+      
+        public IEnumerable<ICatalogEntry> GetResults()
+            => Results;
 
-        public bool IsFinalPage { get; internal set; } = true;
+        public long GetResultsCount()
+            => ResultsCount;
 
-        public int ResultsCount { get; internal set; } = default;
-
-        public IEnumerable<CatalogEntry> SearchResults { get; set; } = Enumerable.Empty<CatalogEntry>();
+        public bool IsLastPage()
+            => IsFinalPage;
     }
 }

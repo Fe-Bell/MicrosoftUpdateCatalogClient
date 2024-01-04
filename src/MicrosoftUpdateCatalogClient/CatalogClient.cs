@@ -1,6 +1,5 @@
 using HtmlAgilityPack;
 using MicrosoftUpdateCatalogClient.Exceptions;
-using MicrosoftUpdateCatalogClient.Enums;
 using MicrosoftUpdateCatalogClient.Models;
 using MicrosoftUpdateCatalogClient.Progress;
 using MicrosoftUpdateCatalogClient.Result;
@@ -17,16 +16,17 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Net.Http.Handlers;
 using System.Globalization;
+using MicrosoftUpdateCatalog.Core.Contract;
+using MicrosoftUpdateCatalog.Core.Enums;
 
 namespace MicrosoftUpdateCatalogClient
 {
     /// <summary>
     /// Class that handles all communications with catalog.update.microsoft.com
     /// </summary>
-    public class CatalogClient
+    public class CatalogClient :
+        ACatalogClient
     {
-        private static readonly Uri BASE_URI = new("https://www.catalog.update.microsoft.com");
-
         private static async Task<CatalogEntry> CreateUpdateObjectAsync(CatalogSearchResult catalogSearchResult, byte pageReloadAttempts = 3, CancellationToken cancellationToken = default)
         {
             HtmlDocument _detailsPage = await GetDetailsPageAsync(catalogSearchResult.UpdateID, cancellationToken);
@@ -602,10 +602,11 @@ namespace MicrosoftUpdateCatalogClient
         /// </param>
         /// <param name="sortDirection">Sorting direction. Ascending or Descending</param>
         /// <returns>List of objects derived from UpdateBase class (Update or Driver)</returns>
-        public async Task<IEnumerable<CatalogSearchResult>> SearchAsync(string query, bool ignoreDuplicates = true, QueryOptions options = default, CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<CatalogSearchResult>> SearchFullAsync(string query, QueryOptions options = default, CancellationToken cancellationToken = default)
         {
             CatalogResponse lastCatalogResponse = null;
             byte pageReloadAttemptsLeft = Configuration.PageReloadAttempts;
+            bool ignoreDuplicates = options.ShouldIgnoreDuplicates();
 
             while (lastCatalogResponse is null)
             {
@@ -742,6 +743,21 @@ namespace MicrosoftUpdateCatalogClient
             }
 
             return catalogFirstPage;
+        }
+
+        public override async Task<IEnumerable<ICatalogEntry>> SearchAsync(string query, IQueryOptions options = null, CancellationToken cancellationToken = default)
+        {
+            IEnumerable <CatalogSearchResult> catalogSearchResults = Enumerable.Empty<CatalogSearchResult>();
+            if (options == null)
+                catalogSearchResults = await SearchFullAsync(query, default, cancellationToken);
+
+            else if (options is QueryOptions queryOptions)
+                catalogSearchResults = await SearchFullAsync(query, queryOptions, cancellationToken);
+
+            else
+                catalogSearchResults = await SearchFullAsync(query, new QueryOptions(options), cancellationToken);
+
+            return await Task.WhenAll(catalogSearchResults.Select(async x => await GetResultDetailsAsync(x, true, cancellationToken)));
         }
     }
 }

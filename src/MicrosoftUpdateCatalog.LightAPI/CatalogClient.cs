@@ -20,16 +20,14 @@ using System.Globalization;
 using MicrosoftUpdateCatalog.Core.Contract;
 using MicrosoftUpdateCatalog.LightAPI.Valodation;
 
-namespace MicrosoftUpdateCatalogClient
+namespace MicrosoftUpdateCatalog.LightAPI
 {
     /// <summary>
     /// Class that handles all communications with catalog.update.microsoft.com
     /// </summary>
     public class CatalogClient :
-        ICatalogClient
+        ACatalogClient
     {
-        private static readonly Uri BASE_URI = new("https://www.catalog.update.microsoft.com");
-
         private static async Task<HtmlDocument> GetDetailsPageAsync(string updateId, CancellationToken cancellationToken = default)
         {
             try
@@ -160,7 +158,7 @@ namespace MicrosoftUpdateCatalogClient
 
             return new CatalogResponse()
             {
-                SearchResults = searchResults,
+                Results = searchResults,
                 SearchQueryUri = searchQueryUri,
                 EventArgument = eventArgument,
                 EventValidation = eventValidation,
@@ -386,10 +384,13 @@ namespace MicrosoftUpdateCatalogClient
         /// </param>
         /// <param name="sortDirection">Sorting direction. Ascending or Descending</param>
         /// <returns>List of objects derived from UpdateBase class (Update or Driver)</returns>
-        public async Task<IEnumerable<ICatalogEntry>> SearchAsync(string query, bool ignoreDuplicates = true, IQueryOptions options = null, CancellationToken cancellationToken = default)
+        public override async Task<IEnumerable<ICatalogEntry>> SearchAsync(string query, IQueryOptions options = null, CancellationToken cancellationToken = default)
         {
             CatalogResponse lastCatalogResponse = null;
             byte pageReloadAttemptsLeft = Configuration.PageReloadAttempts;
+            bool ignoreDuplicates = true;
+            if (options != null)
+                ignoreDuplicates = options.ShouldIgnoreDuplicates();
 
             while (lastCatalogResponse is null)
             {
@@ -441,13 +442,20 @@ namespace MicrosoftUpdateCatalogClient
 
                 try
                 {
-                    List<CatalogEntry> lst = new(lastCatalogResponse.SearchResults);
+                    List<CatalogEntry> lst = new(lastCatalogResponse.Results);
                     lastCatalogResponse = await ParseNextCatalogResponseAsync(lastCatalogResponse, cancellationToken);
-                    lst.AddRange(lastCatalogResponse.SearchResults);
-                    lastCatalogResponse.SearchResults = lst;
+                    if (ignoreDuplicates)
+                    {
+                        lastCatalogResponse.Results = lastCatalogResponse.Results.DistinctBy(result => (result.Size, result.Title));
+                    }
+
+                    lst.AddRange(lastCatalogResponse.Results);
                     lastCatalogResponse.ResultsCount = lst.Count;
 
                     pageReloadAttemptsLeft = Configuration.PageReloadAttempts; // Reset page refresh attempts count
+
+                    if (options != null && options.GetMaxResults() <= lastCatalogResponse.ResultsCount)
+                        break;
                 }
                 catch (TaskCanceledException)
                 {
@@ -464,10 +472,7 @@ namespace MicrosoftUpdateCatalogClient
                 }
             }
 
-            if (ignoreDuplicates)
-                return lastCatalogResponse.SearchResults.DistinctBy(result => (result.Size, result.Title));
-
-            return lastCatalogResponse.SearchResults;
+            return lastCatalogResponse.Results;
         }
 
         /// <summary>
@@ -484,7 +489,7 @@ namespace MicrosoftUpdateCatalogClient
         /// </param>
         /// <param name="sortDirection">Sorting direction. Ascending or Descending</param>
         /// <returns>CatalogResponse object representing the first results page</returns>
-        public async Task<CatalogResponse> SearchFirstPageAsync(string query, IQueryOptions options = null, CancellationToken cancellationToken = default)
+        public async Task<CatalogResponse> SearchFirstPageLightAsync(string query, IQueryOptions options = null, CancellationToken cancellationToken = default)
         {
             CatalogResponse catalogFirstPage = null;
             byte pageReloadAttemptsLeft = Configuration.PageReloadAttempts;

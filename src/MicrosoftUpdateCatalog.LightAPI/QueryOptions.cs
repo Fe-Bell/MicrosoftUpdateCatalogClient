@@ -10,6 +10,10 @@ namespace MicrosoftUpdateCatalog.LightAPI
 
         public SortDirection SortDirection { get; set; } = SortDirection.Descending;
 
+        public int MaxResults { get; set; } = int.MaxValue;
+
+        public bool IgnoreDuplicates { get; set; } = true;
+
         public QueryOptions()
         {
 
@@ -20,5 +24,11 @@ namespace MicrosoftUpdateCatalog.LightAPI
 
         public readonly SortDirection GetSortDirection()
             => SortDirection;
+
+        public readonly int GetMaxResults()
+            => MaxResults;
+
+        public readonly bool ShouldIgnoreDuplicates()
+            => IgnoreDuplicates;
     }
 }

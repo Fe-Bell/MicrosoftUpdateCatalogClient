@@ -1,6 +1,6 @@
 ﻿using MicrosoftUpdateCatalog.Core.Contract;
 
-namespace MicrosoftUpdateCatalogClient
+namespace MicrosoftUpdateCatalog.LightAPI
 {
     public class ClientConfiguration :
         IClientConfiguration
