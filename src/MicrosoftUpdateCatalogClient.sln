@@ -3,13 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34316.72
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MicrosoftUpdateCatalogClient.Tests", "MicrosoftUpdateCatalogClient.Tests\MicrosoftUpdateCatalogClient.Tests.csproj", "{12B42793-AC2C-40F2-942E-B96E6531A096}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MicrosoftUpdateCatalog.Core", "MicrosoftUpdateCatalog.Core\MicrosoftUpdateCatalog.Core.csproj", "{7ED73E6D-821B-4F8A-BC9E-A478B1A33CD7}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MicrosoftUpdateCatalog.LightAPI", "MicrosoftUpdateCatalog.LightAPI\MicrosoftUpdateCatalog.LightAPI.csproj", "{C8874C57-7336-4D32-BC6F-1C6A54C45598}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MicrosoftUpdateCatalog.StandardAPI", "MicrosoftUpdateCatalog.StandardAPI\MicrosoftUpdateCatalog.StandardAPI.csproj", "{FE17F63E-5FDE-4A7D-B07B-B97FEE695803}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MicrosoftUpdateCatalog.Tests", "MicrosoftUpdateCatalog.Tests\MicrosoftUpdateCatalog.Tests.csproj", "{37D0F3FE-CFAE-47BC-B342-1EE357BEA8AB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +17,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{12B42793-AC2C-40F2-942E-B96E6531A096}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{12B42793-AC2C-40F2-942E-B96E6531A096}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{12B42793-AC2C-40F2-942E-B96E6531A096}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{12B42793-AC2C-40F2-942E-B96E6531A096}.Release|Any CPU.Build.0 = Release|Any CPU
 		{7ED73E6D-821B-4F8A-BC9E-A478B1A33CD7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{7ED73E6D-821B-4F8A-BC9E-A478B1A33CD7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7ED73E6D-821B-4F8A-BC9E-A478B1A33CD7}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -33,6 +29,10 @@ Global
 		{FE17F63E-5FDE-4A7D-B07B-B97FEE695803}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FE17F63E-5FDE-4A7D-B07B-B97FEE695803}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FE17F63E-5FDE-4A7D-B07B-B97FEE695803}.Release|Any CPU.Build.0 = Release|Any CPU
+		{37D0F3FE-CFAE-47BC-B342-1EE357BEA8AB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{37D0F3FE-CFAE-47BC-B342-1EE357BEA8AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{37D0F3FE-CFAE-47BC-B342-1EE357BEA8AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{37D0F3FE-CFAE-47BC-B342-1EE357BEA8AB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,7 +1,7 @@
 using MicrosoftUpdateCatalog.StandardAPI;
 using MicrosoftUpdateCatalog.StandardAPI.Models;
 
-namespace MicrosoftUpdateCatalogClient.Tests
+namespace MicrosoftUpdateCatalog.Tests
 {
     public class UnitTests
     {
