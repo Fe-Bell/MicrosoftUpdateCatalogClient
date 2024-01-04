@@ -24,7 +24,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MicrosoftUpdateCatalogClient\MicrosoftUpdateCatalogClient.csproj" />
+    <ProjectReference Include="..\MicrosoftUpdateCatalog.Core\MicrosoftUpdateCatalog.Core.csproj" />
+    <ProjectReference Include="..\MicrosoftUpdateCatalog.StandardAPI\MicrosoftUpdateCatalog.StandardAPI.csproj" />
   </ItemGroup>
 
 </Project>

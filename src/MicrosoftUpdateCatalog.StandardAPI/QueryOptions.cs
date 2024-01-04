@@ -1,7 +1,7 @@
 ﻿using MicrosoftUpdateCatalog.Core.Contract;
 using MicrosoftUpdateCatalog.Core.Enums;
 
-namespace MicrosoftUpdateCatalogClient
+namespace MicrosoftUpdateCatalog.StandardAPI
 {
     public struct QueryOptions :
         IQueryOptions

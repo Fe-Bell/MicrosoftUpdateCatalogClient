@@ -1,4 +1,4 @@
-﻿namespace MicrosoftUpdateCatalogClient
+﻿namespace MicrosoftUpdateCatalog.StandardAPI
 {
     public class ClientConfiguration
     {

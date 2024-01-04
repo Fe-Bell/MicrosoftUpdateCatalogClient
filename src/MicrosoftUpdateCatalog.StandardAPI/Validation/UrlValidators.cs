@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace MicrosoftUpdateCatalogClient.Validation
+namespace MicrosoftUpdateCatalog.StandardAPI.Validation
 {
     internal partial class UrlValidators
     {

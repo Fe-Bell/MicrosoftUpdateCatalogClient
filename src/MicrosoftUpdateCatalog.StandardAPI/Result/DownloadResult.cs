@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 
-namespace MicrosoftUpdateCatalogClient.Result
+namespace MicrosoftUpdateCatalog.StandardAPI.Result
 {
     public class DownloadResult :
         IResult<IEnumerable<FileSystemInfo>>

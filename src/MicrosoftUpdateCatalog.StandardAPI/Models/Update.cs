@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace MicrosoftUpdateCatalogClient.Models
+namespace MicrosoftUpdateCatalog.StandardAPI.Models
 {
     public class Update : 
         CatalogEntry

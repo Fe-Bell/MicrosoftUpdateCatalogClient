@@ -1,4 +1,4 @@
-﻿namespace MicrosoftUpdateCatalogClient.Result
+﻿namespace MicrosoftUpdateCatalog.StandardAPI.Result
 {
     public interface IResult<TType>
     {

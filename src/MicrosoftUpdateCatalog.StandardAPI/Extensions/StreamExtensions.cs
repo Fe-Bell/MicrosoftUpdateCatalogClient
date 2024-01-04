@@ -1,10 +1,10 @@
-﻿using MicrosoftUpdateCatalogClient.Progress;
+﻿using MicrosoftUpdateCatalog.StandardAPI.Progress;
 using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace MicrosoftUpdateCatalogClient.Extensions
+namespace MicrosoftUpdateCatalog.StandardAPI.Extensions
 {
     internal static class StreamExtensions
     {

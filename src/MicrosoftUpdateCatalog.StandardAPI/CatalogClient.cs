@@ -1,9 +1,9 @@
 using HtmlAgilityPack;
-using MicrosoftUpdateCatalogClient.Exceptions;
-using MicrosoftUpdateCatalogClient.Models;
-using MicrosoftUpdateCatalogClient.Progress;
-using MicrosoftUpdateCatalogClient.Result;
-using MicrosoftUpdateCatalogClient.Serialization;
+using MicrosoftUpdateCatalog.StandardAPI.Exceptions;
+using MicrosoftUpdateCatalog.StandardAPI.Models;
+using MicrosoftUpdateCatalog.StandardAPI.Progress;
+using MicrosoftUpdateCatalog.StandardAPI.Result;
+using MicrosoftUpdateCatalog.StandardAPI.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -19,7 +19,7 @@ using System.Globalization;
 using MicrosoftUpdateCatalog.Core.Contract;
 using MicrosoftUpdateCatalog.Core.Enums;
 
-namespace MicrosoftUpdateCatalogClient
+namespace MicrosoftUpdateCatalog.StandardAPI
 {
     /// <summary>
     /// Class that handles all communications with catalog.update.microsoft.com

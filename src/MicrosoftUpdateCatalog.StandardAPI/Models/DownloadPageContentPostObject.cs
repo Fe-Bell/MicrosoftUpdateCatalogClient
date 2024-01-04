@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace MicrosoftUpdateCatalogClient.Models
+namespace MicrosoftUpdateCatalog.StandardAPI.Models
 {
     internal sealed class DownloadPageContentPostObject
     {

@@ -1,4 +1,5 @@
-using MicrosoftUpdateCatalogClient.Models;
+using MicrosoftUpdateCatalog.StandardAPI;
+using MicrosoftUpdateCatalog.StandardAPI.Models;
 
 namespace MicrosoftUpdateCatalogClient.Tests
 {

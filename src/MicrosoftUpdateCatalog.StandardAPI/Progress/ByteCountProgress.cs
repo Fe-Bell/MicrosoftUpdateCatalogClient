@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace MicrosoftUpdateCatalogClient.Progress
+namespace MicrosoftUpdateCatalog.StandardAPI.Progress
 {
     /// <summary>
     /// Progress implementation that counts bytes.

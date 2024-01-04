@@ -1,4 +1,4 @@
-namespace MicrosoftUpdateCatalogClient.Exceptions;
+namespace MicrosoftUpdateCatalog.StandardAPI.Exceptions;
 
 public class CatalogNoResultsException : System.Exception
 {
