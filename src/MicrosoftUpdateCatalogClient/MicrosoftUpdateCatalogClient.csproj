@@ -16,7 +16,9 @@
 		<Description>
 			Little library developed to parse catalog.update.microsoft.com search results
 		</Description>
-		<OutputPath>../bin/$(Configuration)/$(Platform)/</OutputPath>
+		<OutputPath>../bin/$(Configuration)/$(Platform)/$(ProjectName)</OutputPath>
+		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+		<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
 		<!-- Required to support AoT compilation, specially on .NET 8.0 -->
 		<JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
 	</PropertyGroup>
@@ -25,6 +27,10 @@
 		<PackageReference Include="HtmlAgilityPack" Version="1.11.54" />
 		<PackageReference Include="Microsoft.AspNet.WebApi.Client" Version="6.0.0" />
 		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\MicrosoftUpdateCatalog.Core\MicrosoftUpdateCatalog.Core.csproj" />
 	</ItemGroup>
 
 </Project>
