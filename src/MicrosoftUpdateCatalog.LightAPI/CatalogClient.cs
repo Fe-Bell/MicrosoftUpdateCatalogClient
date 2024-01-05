@@ -176,8 +176,8 @@ namespace MicrosoftUpdateCatalog.LightAPI
             CatalogEntry catalogEntry = new()
             {
                 Title = rowCells[1].InnerText.Trim(),
-                EntryType = GetEntryTypeFromString(rowCells[2].InnerText.Trim()),
-                LastUpdated = DateOnly.ParseExact(rowCells[4].InnerText.Trim(), "MM/dd/yyyy", CultureInfo.InvariantCulture),
+                EntryType = GetEntryTypeFromString(rowCells[3].InnerText.Trim()),
+                LastUpdated = DateOnly.ParseExact(rowCells[4].InnerText.Trim(), "M/d/yyyy", CultureInfo.InvariantCulture),
                 Version = rowCells[5].InnerText.Trim(),
                 Size = long.Parse(rowCells[6].SelectNodes("span")[1].InnerHtml.Trim()),
                 UpdateID = rowCells[7].SelectNodes("input")[0].Id.Trim()
@@ -422,12 +422,12 @@ namespace MicrosoftUpdateCatalog.LightAPI
                 }
             }
 
-            if (options?.GetSortOrder() is not SortBy.None)
+            if (options != null && options.GetSortOrder() != SortBy.None)
             {
                 // This will sort results in the ascending order
                 lastCatalogResponse = await SortSearchResults(query, lastCatalogResponse, options.GetSortOrder(), cancellationToken);
 
-                if (options.GetSortDirection() is SortDirection.Descending)
+                if (options.GetSortDirection() == SortDirection.Descending)
                 {
                     // The only way to sort results in the descending order is to send the same request again 
                     lastCatalogResponse = await SortSearchResults(query, lastCatalogResponse, options.GetSortOrder(), cancellationToken);
@@ -436,6 +436,8 @@ namespace MicrosoftUpdateCatalog.LightAPI
 
             pageReloadAttemptsLeft = Configuration.PageReloadAttempts;
 
+            List<CatalogEntry> searchResults = new(lastCatalogResponse.Results);
+
             while (!lastCatalogResponse.IsFinalPage)
             {
                 if (pageReloadAttemptsLeft == 0)
@@ -443,19 +445,18 @@ namespace MicrosoftUpdateCatalog.LightAPI
 
                 try
                 {
-                    List<CatalogEntry> lst = new(lastCatalogResponse.Results);
                     lastCatalogResponse = await ParseNextCatalogResponseAsync(lastCatalogResponse, cancellationToken);
                     if (ignoreDuplicates)
                     {
-                        lastCatalogResponse.Results = lastCatalogResponse.Results.DistinctBy(result => (result.Size, result.Title));
+                        lastCatalogResponse.Results = lastCatalogResponse.Results
+                            .DistinctBy(result => (result.Size, result.Title));
                     }
 
-                    lst.AddRange(lastCatalogResponse.Results);
-                    lastCatalogResponse.ResultsCount = lst.Count;
+                    searchResults.AddRange(lastCatalogResponse.Results);
 
                     pageReloadAttemptsLeft = Configuration.PageReloadAttempts; // Reset page refresh attempts count
 
-                    if (options != null && options.GetMaxResults() <= lastCatalogResponse.ResultsCount)
+                    if (options != null && options.GetMaxResults() <= searchResults.Count)
                         break;
                 }
                 catch (TaskCanceledException)
@@ -473,7 +474,7 @@ namespace MicrosoftUpdateCatalog.LightAPI
                 }
             }
 
-            return lastCatalogResponse.Results;
+            return searchResults;
         }
 
         /// <summary>
@@ -519,12 +520,12 @@ namespace MicrosoftUpdateCatalog.LightAPI
                 }
             }
 
-            if (options?.GetSortOrder() is not SortBy.None)
+            if (options != null && options.GetSortOrder() != SortBy.None)
             {
                 // This will sort results in the ascending order
                 catalogFirstPage = await SortSearchResults(query, catalogFirstPage, options.GetSortOrder(), cancellationToken);
 
-                if (options.GetSortDirection() is SortDirection.Descending)
+                if (options.GetSortDirection() == SortDirection.Descending)
                 {
                     // The only way to sort results in the descending order is to send the same request again 
                     catalogFirstPage = await SortSearchResults(query, catalogFirstPage, options.GetSortOrder(), cancellationToken);

@@ -638,12 +638,12 @@ namespace MicrosoftUpdateCatalog.StandardAPI
                 }
             }
 
-            if (options.SortOrder is not SortBy.None)
+            if (options.SortOrder != SortBy.None)
             {
                 // This will sort results in the ascending order
                 lastCatalogResponse = await SortSearchResults(query, lastCatalogResponse, options.SortOrder, cancellationToken);
 
-                if (options.SortDirection is SortDirection.Descending)
+                if (options.SortDirection == SortDirection.Descending)
                 {
                     // The only way to sort results in the descending order is to send the same request again 
                     lastCatalogResponse = await SortSearchResults(query, lastCatalogResponse, options.SortOrder, cancellationToken);
@@ -730,12 +730,12 @@ namespace MicrosoftUpdateCatalog.StandardAPI
                 }
             }
 
-            if (options.SortOrder is not SortBy.None)
+            if (options.SortOrder != SortBy.None)
             {
                 // This will sort results in the ascending order
                 catalogFirstPage = await SortSearchResults(query, catalogFirstPage, options.SortOrder, cancellationToken);
 
-                if (options.SortDirection is SortDirection.Descending)
+                if (options.SortDirection == SortDirection.Descending)
                 {
                     // The only way to sort results in the descending order is to send the same request again 
                     catalogFirstPage = await SortSearchResults(query, catalogFirstPage, options.SortOrder, cancellationToken);

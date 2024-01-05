@@ -25,11 +25,8 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\MicrosoftUpdateCatalog.Core\MicrosoftUpdateCatalog.Core.csproj" />
+		<ProjectReference Include="..\MicrosoftUpdateCatalog.LightAPI\MicrosoftUpdateCatalog.LightAPI.csproj" />
 		<ProjectReference Include="..\MicrosoftUpdateCatalog.StandardAPI\MicrosoftUpdateCatalog.StandardAPI.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Folder Include="LightAPI\" />
 	</ItemGroup>
 
 </Project>
