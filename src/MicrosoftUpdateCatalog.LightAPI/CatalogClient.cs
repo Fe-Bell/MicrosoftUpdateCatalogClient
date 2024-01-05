@@ -202,7 +202,8 @@ namespace MicrosoftUpdateCatalog.LightAPI
                 BaseAddress = BASE_URI
             };
 
-            using HttpResponseMessage response = await httpClient.GetAsync($"Search.aspx?q={HttpUtility.UrlEncode(requestUri)}", cancellationToken);
+            string requestUri_ = $"Search.aspx?q={HttpUtility.UrlEncode(requestUri)}";
+            using HttpResponseMessage response = await httpClient.GetAsync(requestUri_, cancellationToken);
             response.EnsureSuccessStatusCode();
 
             HtmlDocument htmlDoc = new();
@@ -214,7 +215,7 @@ namespace MicrosoftUpdateCatalog.LightAPI
             if (htmlDoc.GetElementbyId("ctl00_catalogBody_noResultText") is not null)
                 throw new CatalogNoResultsException();
 
-            return await ParseCatalogResponseFromHtmlPage(htmlDoc, requestUri, cancellationToken);
+            return await ParseCatalogResponseFromHtmlPage(htmlDoc, requestUri_, cancellationToken);
         }
 
         private static async Task<CatalogResponse> SortSearchResults(string searchQuery, CatalogResponse unsortedResponse, SortBy sortBy, CancellationToken cancellationToken = default)

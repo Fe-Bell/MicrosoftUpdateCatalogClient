@@ -223,7 +223,7 @@ namespace MicrosoftUpdateCatalog.StandardAPI
                 Title = rowCells[1].InnerText.Trim(),
                 Products = rowCells[2].InnerText.Trim(),
                 Classification = rowCells[3].InnerText.Trim(),
-                LastUpdated = DateOnly.ParseExact(rowCells[4].InnerText.Trim(), "MM/dd/yyyy", CultureInfo.InvariantCulture),
+                LastUpdated = DateOnly.ParseExact(rowCells[4].InnerText.Trim(), "M/d/yyyy", CultureInfo.InvariantCulture),
                 Version = rowCells[5].InnerText.Trim(),
                 Size = rowCells[6].SelectNodes("span")[0].InnerText.Trim(),
                 SizeInBytes = long.Parse(rowCells[6].SelectNodes("span")[1].InnerHtml.Trim()),
@@ -390,7 +390,8 @@ namespace MicrosoftUpdateCatalog.StandardAPI
                 BaseAddress = BASE_URI
             };
 
-            using HttpResponseMessage response = await httpClient.GetAsync($"Search.aspx?q={HttpUtility.UrlEncode(requestUri)}", cancellationToken);
+            string requestUri_ = $"Search.aspx?q={HttpUtility.UrlEncode(requestUri)}";
+            using HttpResponseMessage response = await httpClient.GetAsync(requestUri_, cancellationToken);
             response.EnsureSuccessStatusCode();
 
             HtmlDocument htmlDoc = new();
@@ -402,7 +403,7 @@ namespace MicrosoftUpdateCatalog.StandardAPI
             if (htmlDoc.GetElementbyId("ctl00_catalogBody_noResultText") is not null)
                 throw new CatalogNoResultsException();
 
-            return ParseCatalogResponseFromHtmlPage(htmlDoc, requestUri);
+            return ParseCatalogResponseFromHtmlPage(htmlDoc, requestUri_);
         }
 
         private static async Task<CatalogResponse> SortSearchResults(string searchQuery, CatalogResponse unsortedResponse, SortBy sortBy, CancellationToken cancellationToken = default)
@@ -544,9 +545,9 @@ namespace MicrosoftUpdateCatalog.StandardAPI
                 BaseAddress = BASE_URI
             };
             using HttpResponseMessage response = await httpClient.PostAsync(lastCatalogResponse.SearchQueryUri, requestContent, cancellationToken);
-            response.EnsureSuccessStatusCode();
-
+            
             HtmlDocument htmlDoc = new();
+            response.EnsureSuccessStatusCode();
 
             using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken);
             htmlDoc.Load(stream);
@@ -651,6 +652,8 @@ namespace MicrosoftUpdateCatalog.StandardAPI
 
             pageReloadAttemptsLeft = Configuration.PageReloadAttempts;
 
+            List<CatalogSearchResult> searchResults = new(lastCatalogResponse.SearchResults);
+
             while (!lastCatalogResponse.IsFinalPage)
             {
                 if (pageReloadAttemptsLeft == 0)
@@ -658,11 +661,8 @@ namespace MicrosoftUpdateCatalog.StandardAPI
 
                 try
                 {
-                    List<CatalogSearchResult> lst = new(lastCatalogResponse.SearchResults);
                     lastCatalogResponse = await ParseNextCatalogResponseAsync(lastCatalogResponse, cancellationToken);
-                    lst.AddRange(lastCatalogResponse.SearchResults);
-                    lastCatalogResponse.SearchResults = lst;
-                    lastCatalogResponse.ResultsCount = lst.Count;
+                    searchResults.AddRange(lastCatalogResponse.SearchResults);
 
                     pageReloadAttemptsLeft = Configuration.PageReloadAttempts; // Reset page refresh attempts count
                 }
@@ -682,9 +682,9 @@ namespace MicrosoftUpdateCatalog.StandardAPI
             }
 
             if (ignoreDuplicates)
-                return lastCatalogResponse.SearchResults.DistinctBy(result => (result.SizeInBytes, result.Title));
+                return searchResults.DistinctBy(result => (result.SizeInBytes, result.Title));
 
-            return lastCatalogResponse.SearchResults;
+            return searchResults;
         }
 
         /// <summary>
