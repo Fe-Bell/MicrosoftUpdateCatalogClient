@@ -2,8 +2,14 @@
 
 	<PropertyGroup>
 		<TargetFramework>net7.0</TargetFramework>
-		<ImplicitUsings>disable</ImplicitUsings>
+		<Version>1.0.0.0</Version>
 		<Nullable>disable</Nullable>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageTags>microsoft-update-catalog</PackageTags>
+		<PackageProjectUrl>https://github.com/Fe-Bell/MicrosoftUpdateCatalogClient</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/Fe-Bell/MicrosoftUpdateCatalogClient</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
 		<OutputPath>../bin/$(Configuration)/$(Platform)/$(ProjectName)</OutputPath>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
@@ -12,7 +18,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <PackageReference Include="HtmlAgilityPack" Version="1.11.54" />
+	  <PackageReference Include="HtmlAgilityPack" Version="1.11.57" />
 	  <PackageReference Include="Microsoft.AspNet.WebApi.Client" Version="6.0.0" />
 	</ItemGroup>
 
